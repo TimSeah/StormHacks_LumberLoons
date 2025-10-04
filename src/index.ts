@@ -1,10 +1,9 @@
+// Load environment variables as early as possible
+import 'dotenv/config';
 import express from "express";
 import cors from "cors";
-import dotenv from "dotenv";
 import authRoutes from "./auth/auth.routes";
 import { verifyToken } from "./auth/auth.jwt";
-
-dotenv.config();
 
 const app = express();
 const PORT = Number(process.env.PORT || 8080);
@@ -27,6 +26,22 @@ app.use("/api/auth", authRoutes);
 // protected example
 app.get("/api/protected", verifyToken, (req, res) => {
   res.json({ message: "protected data", user: (req as any).user });
+});
+
+// global error handler
+app.use((err: any, _req: any, res: any, _next: any) => {
+  console.error("Unhandled request error:", err);
+  res.status(500).json({ message: "internal_server_error" });
+});
+
+// process-level handlers
+process.on("unhandledRejection", (reason) => {
+  console.error("Unhandled Rejection:", reason);
+});
+
+process.on("uncaughtException", (err) => {
+  console.error("Uncaught Exception:", err);
+  // optional: process.exit(1);
 });
 
 app.listen(PORT, () => {
