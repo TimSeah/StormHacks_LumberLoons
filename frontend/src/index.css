@@ -1,0 +1,26 @@
+@import "tailwindcss";
+@import url("https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400;1,700&family=Outfit:wght@100..900&display=swap");
+
+/* Color Variables */
+@theme {
+  --color-background: #ffffff;
+  --color-surface: #f6f6f6;
+  --color-elevated: #efefef;
+  --color-foreground: #000000;
+  --color-primary: #ffce5c;
+  --color-primary-foreground: #000;
+  --color-secondary: #f1f5f9;
+  --color-secondary-foreground: #0f172a;
+  --color-accent: #f8fafc;
+  --color-accent-foreground: #0f172a;
+  --color-border: #d2d2d2;
+  --color-muted: #f8fafc;
+  --color-muted-foreground: #64748b;
+}
+
+/* Base styles */
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: "Outfit", sans-serif;
+}
