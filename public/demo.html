@@ -2,53 +2,229 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <title>LiveKit Laptop Demo</title>
+    <title>LiveKit Video & Audio Demo</title>
     <script src="https://cdn.jsdelivr.net/npm/livekit-client@2/dist/livekit-client.umd.min.js"></script>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+      }
+      .video-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+        margin-top: 20px;
+      }
+      .video-wrapper {
+        border: 2px solid #ccc;
+        border-radius: 8px;
+        padding: 10px;
+        text-align: center;
+      }
+      video {
+        width: 300px;
+        height: 200px;
+        background-color: #000;
+        border-radius: 4px;
+      }
+      .controls {
+        margin: 20px 0;
+      }
+      button {
+        padding: 10px 20px;
+        margin: 5px;
+        font-size: 16px;
+        cursor: pointer;
+      }
+      #status {
+        font-weight: bold;
+      }
+    </style>
   </head>
   <body>
-    <h1>LiveKit Laptop Demo</h1>
-    <button onclick="joinRoom()">Join Room</button>
+    <h1>LiveKit Video & Audio Demo</h1>
+    <div class="controls">
+      <button onclick="joinRoom()">Join Room</button>
+      <button onclick="leaveRoom()" disabled id="leaveBtn">Leave Room</button>
+      <button onclick="toggleCamera()" disabled id="cameraBtn">Turn Off Camera</button>
+      <button onclick="toggleMicrophone()" disabled id="micBtn">Turn Off Microphone</button>
+    </div>
     <p id="status">Not connected yet.</p>
+    
+    <div class="video-container">
+      <div class="video-wrapper">
+        <h3>Your Video</h3>
+        <video id="localVideo" autoplay muted playsinline></video>
+      </div>
+      <div id="remoteVideos"></div>
+    </div>
 
     <script>
+      let room = null;
+      let localVideoTrack = null;
+      let localAudioTrack = null;
+      let isConnected = false;
+
       async function joinRoom() {
         try {
-          //Fetch token from backend
+          // Fetch token from backend
           const resp = await fetch("http://localhost:3000/livekit/token", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              identity: "chu123",
+              identity: "user_" + Math.random().toString(36).substr(2, 9),
               roomName: "session-1",
             }),
           });
           const { token } = await resp.json();
           console.log("Got token:", token);
 
-          const { Room, createLocalAudioTrack } = LivekitClient;
+          const { Room, createLocalVideoTrack, createLocalAudioTrack } = LivekitClient;
 
-          //Connect to LiveKit Cloud
-          const room = new Room();
+          // Connect to LiveKit Cloud
+          room = new Room();
           await room.connect(
             "wss://hackathons-sfu-2025-oct-4-n9u399o0.livekit.cloud",
             token
           );
 
-          //Publish microphone
-          const micTrack = await createLocalAudioTrack();
-          await room.localParticipant.publishTrack(micTrack);
+          // Create and publish video track
+          localVideoTrack = await createLocalVideoTrack();
+          await room.localParticipant.publishTrack(localVideoTrack);
+          
+          // Attach local video to video element
+          const localVideo = document.getElementById('localVideo');
+          localVideoTrack.attach(localVideo);
 
-          //Listen for others
-          room.on("participantConnected", (p) => {
-            console.log("New participant:", p.identity);
+          // Create and publish audio track
+          localAudioTrack = await createLocalAudioTrack();
+          await room.localParticipant.publishTrack(localAudioTrack);
+
+          // Listen for participants joining
+          room.on("participantConnected", (participant) => {
+            console.log("New participant:", participant.identity);
+            handleParticipant(participant);
           });
 
-          document.getElementById("status").innerText = " Connected to room!";
+          // Listen for track subscriptions
+          room.on("trackSubscribed", (track, publication, participant) => {
+            console.log("Track subscribed:", track.kind, participant.identity);
+            handleTrack(track, participant);
+          });
+
+          // Listen for track unsubscriptions
+          room.on("trackUnsubscribed", (track, publication, participant) => {
+            console.log("Track unsubscribed:", track.kind, participant.identity);
+            track.detach();
+          });
+
+          // Handle existing participants
+          if (room.participants) {
+            room.participants.forEach(handleParticipant);
+          }
+
+          isConnected = true;
+          updateUI();
+          document.getElementById("status").innerText = "Connected to room!";
         } catch (err) {
           console.error("Join failed:", err);
           document.getElementById("status").innerText =
             "Failed: " + (err.message || err);
         }
+      }
+
+      function handleParticipant(participant) {
+        if (participant.tracks) {
+          participant.tracks.forEach((publication) => {
+            if (publication.track) {
+              handleTrack(publication.track, participant);
+            }
+          });
+        }
+      }
+
+      function handleTrack(track, participant) {
+        if (track.kind === 'video') {
+          const remoteVideos = document.getElementById('remoteVideos');
+          
+          // Check if video element already exists for this participant
+          let videoWrapper = document.getElementById(`video-${participant.identity}`);
+          if (!videoWrapper) {
+            videoWrapper = document.createElement('div');
+            videoWrapper.className = 'video-wrapper';
+            videoWrapper.id = `video-${participant.identity}`;
+            
+            const title = document.createElement('h3');
+            title.textContent = participant.identity;
+            
+            const video = document.createElement('video');
+            video.autoplay = true;
+            video.playsInline = true;
+            video.id = `remote-video-${participant.identity}`;
+            
+            videoWrapper.appendChild(title);
+            videoWrapper.appendChild(video);
+            remoteVideos.appendChild(videoWrapper);
+          }
+          
+          const video = document.getElementById(`remote-video-${participant.identity}`);
+          track.attach(video);
+        }
+      }
+
+      async function leaveRoom() {
+        if (room) {
+          await room.disconnect();
+          room = null;
+        }
+        
+        // Clean up local tracks
+        if (localVideoTrack) {
+          localVideoTrack.stop();
+          localVideoTrack = null;
+        }
+        if (localAudioTrack) {
+          localAudioTrack.stop();
+          localAudioTrack = null;
+        }
+        
+        // Clear video elements
+        document.getElementById('localVideo').srcObject = null;
+        document.getElementById('remoteVideos').innerHTML = '';
+        
+        isConnected = false;
+        updateUI();
+        document.getElementById("status").innerText = "Disconnected from room";
+      }
+
+      async function toggleCamera() {
+        if (localVideoTrack) {
+          if (localVideoTrack.isMuted) {
+            await localVideoTrack.unmute();
+            document.getElementById('cameraBtn').textContent = 'Turn Off Camera';
+          } else {
+            await localVideoTrack.mute();
+            document.getElementById('cameraBtn').textContent = 'Turn On Camera';
+          }
+        }
+      }
+
+      async function toggleMicrophone() {
+        if (localAudioTrack) {
+          if (localAudioTrack.isMuted) {
+            await localAudioTrack.unmute();
+            document.getElementById('micBtn').textContent = 'Turn Off Microphone';
+          } else {
+            await localAudioTrack.mute();
+            document.getElementById('micBtn').textContent = 'Turn On Microphone';
+          }
+        }
+      }
+
+      function updateUI() {
+        document.getElementById('leaveBtn').disabled = !isConnected;
+        document.getElementById('cameraBtn').disabled = !isConnected;
+        document.getElementById('micBtn').disabled = !isConnected;
       }
     </script>
   </body>
