@@ -10,9 +10,12 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@heroicons/react": "^2.2.0",
+    "@livekit/components-react": "^2.9.15",
+    "@livekit/components-styles": "^1.1.6",
+    "@phosphor-icons/react": "^2.1.10",
     "@tailwindcss/vite": "^4.1.14",
     "@tanstack/react-query": "^5.90.2",
+    "livekit-client": "^2.15.8",
     "lucide-react": "^0.544.0",
     "motion": "^12.23.22",
     "react": "^19.1.1",

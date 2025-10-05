@@ -1,6 +1,7 @@
 export interface AuthUser {
   id: number;
   username: string;
+  streak: number;
 }
 
 export interface AuthResponse {

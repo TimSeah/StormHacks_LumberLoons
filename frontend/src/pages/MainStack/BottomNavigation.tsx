@@ -2,7 +2,8 @@ import { motion } from "motion/react";
 import React from "react";
 import { Link, useLocation } from "react-router";
 // Note: You'll need to install lucide-react: npm install lucide-react
-import { History, Home, Panda, User } from "lucide-react";
+import { HouseSimpleIcon, NotebookIcon, UserIcon } from "@phosphor-icons/react";
+import { Panda } from "lucide-react";
 
 const BottomNavigation: React.FC = () => {
   const location = useLocation();
@@ -10,24 +11,27 @@ const BottomNavigation: React.FC = () => {
   const navItems = [
     {
       path: "/",
-      icon: Home,
+      icon: HouseSimpleIcon,
       label: "Home",
     },
     {
       path: "/history",
-      icon: History,
+      icon: NotebookIcon,
       label: "History",
     },
     {
       path: "/account",
-      icon: User,
+      icon: UserIcon,
       label: "Account",
     },
   ];
 
   return (
-    <nav className="absolute bottom-0 left-0 right-0 bg-background pb-4 px-12 flex-row flex">
-      <div className="flex flex-1 items-center px-2 py-2 rounded-full border-border bg-surface relative">
+    <nav
+      className="fixed bottom-0 left-0 mx-auto right-0 py-4 px-8 flex-row flex z-50  bg-gradient-to-t from-white from-80% to-transparent"
+      style={{ maxWidth: "500px" }}
+    >
+      <div className="flex flex-1 items-center px-2 py-2 rounded-full  bg-surface relative">
         {navItems.map((item) => {
           const isActive = location.pathname === item.path;
           const Icon = item.icon;
@@ -48,7 +52,11 @@ const BottomNavigation: React.FC = () => {
                   transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                 />
               )}
-              <Icon size={24} className="mb-1" />
+              <Icon
+                size={24}
+                className="mb-1"
+                weight={isActive ? "fill" : "regular"}
+              />
               <span className="text-sm font-medium">{item.label}</span>
             </Link>
           );
