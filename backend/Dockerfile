@@ -11,7 +11,6 @@ RUN npm ci
 
 # Copy source code
 COPY tsconfig.json ./
-COPY index.ts ./
 COPY src ./src
 COPY public ./public
 COPY .env* ./
