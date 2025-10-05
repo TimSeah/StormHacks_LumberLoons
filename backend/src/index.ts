@@ -11,6 +11,7 @@ import agentRoutes, {
 } from "./features/agent/agent.routes";
 import chatHistoryRoutes from "./features/chat-history-endpoints/chat_history.routes";
 import livekitRoutes from "./features/livekit/livekit.routes";
+import elevenlabsRoutes from "./features/aquireElevenlabKey/aquireKey.routes";
 
 dotenv.config();
 
@@ -45,6 +46,8 @@ app.use("/livekit", livekitRoutes);
 app.use("/agent", agentRoutes);
 app.use("/auth", authRouter);
 app.use("/chat-history", chatHistoryRoutes);
+app.use("/api/elevenlabs", elevenlabsRoutes);
+
 
 app.get("/", (_req, res) => {
   res.send("test");
