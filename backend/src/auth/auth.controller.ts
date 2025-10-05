@@ -22,12 +22,12 @@ export const signup = async (req: Request, res: Response) => {
     await newUser.save();
 
     const token = jwt.sign(
-      { id: (newUser._id as string), username: newUser.username, streak: newUser.streak },
+      {  username: newUser.username, streak: newUser.streak },
       JWT_SECRET as jwt.Secret,
       { expiresIn: JWT_EXPIRES_IN as jwt.SignOptions["expiresIn"] }
     );
 
-    res.json({ id: (newUser._id as string), username: newUser.username, streak: newUser.streak, accessToken: token });
+    res.json({ username: newUser.username, streak: newUser.streak, accessToken: token });
   } catch (err) {
     console.error("Error in signup:", err);
     res.status(500).json({ message: "internal_server_error" });
@@ -47,12 +47,12 @@ export const signin = async (req: Request, res: Response) => {
     if (!valid) return res.status(401).json({ message: "invalid credentials" });
 
     const token = jwt.sign(
-      { id: user._id?.toString(), username: user.username, streak: user.streak },
+      { username: user.username, streak: user.streak },
       JWT_SECRET as jwt.Secret,
       { expiresIn: JWT_EXPIRES_IN as jwt.SignOptions["expiresIn"] }
     );
 
-    res.json({ id: user._id?.toString(), username: user.username, streak: user.streak, accessToken: token });
+    res.json({ username: user.username, streak: user.streak, accessToken: token });
   } catch (err) {
     console.error("Error in signin:", err);
     res.status(500).json({ message: "internal_server_error" });
