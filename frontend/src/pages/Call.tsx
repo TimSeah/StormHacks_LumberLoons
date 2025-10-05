@@ -102,7 +102,7 @@ const Call: React.FC = () => {
             const average =
               dataArray.reduce((sum, value) => sum + value, 0) /
               dataArray.length;
-            const threshold = 30; // Adjust this threshold as needed
+            const threshold = 80; // Adjust this threshold as needed
 
             setIsListening(average > threshold);
           }

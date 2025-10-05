@@ -22,7 +22,7 @@ const History: React.FC = () => {
       ) : (
         <div className="py-20">
           <h1 className="text-4xl font-bold mb-7">Your conversations</h1>
-          <div className="gap-4 flex flex-col">
+          <div className="gap-4 flex flex-col lg:grid lg:grid-cols-2 lg:gap-6">
             {chatHistory?.map((chatLog) => (
               <div
                 key={chatLog.id}
