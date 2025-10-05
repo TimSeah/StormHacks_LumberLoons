@@ -196,4 +196,6 @@ if __name__ == "__main__":
     detection_thread = threading.Thread(target=run_webcam_loop, args=(detector,))
     detection_thread.daemon = True
     detection_thread.start()
-    socketio.run(app, host="0.0.0.0", port=5000, debug=False)
+    socketio.run(
+        app, host="0.0.0.0", port=5000, debug=False, allow_unsafe_werkzeug=True
+    )

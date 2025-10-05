@@ -1,0 +1,103 @@
+version: '3.8'
+
+services:
+  # MongoDB Service - Database for User Authentication
+  mongodb:
+    image: mongo:7.0
+    container_name: carrie-mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=adminpassword
+      - MONGO_INITDB_DATABASE=carrie_db
+    volumes:
+      - mongodb-data:/data/db
+    networks:
+      - carrie-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # AI Service - Emotion Detection Webhook Only
+  ai:
+    build:
+      context: ./ai
+      dockerfile: Dockerfile
+    container_name: carrie-ai
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_ENV=production
+    networks:
+      - carrie-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # Backend Service - API & Auth
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: carrie-backend
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - AI_SERVICE_URL=http://ai:5000
+      - MONGODB_URI=mongodb://admin:adminpassword@mongodb:27017/carrie_db?authSource=admin
+      - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production}
+      - CLIENT_ORIGIN=http://localhost
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      ai:
+        condition: service_started
+    networks:
+      - carrie-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Frontend Service - React/Vite UI
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: carrie-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+      - ai
+    networks:
+      - carrie-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  carrie-network:
+    driver: bridge
+
+volumes:
+  mongodb-data:
+    driver: local
+  huggingface-cache:
+    driver: local
