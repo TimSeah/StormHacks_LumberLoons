@@ -29,31 +29,33 @@ const LandingPage: React.FC = () => {
               </p>
             </BlurFade>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              {isAuthenticated ? (
-                <Link
-                  to="/home"
-                  className="inline-flex items-center justify-center px-8 py-3 bg-accent text-accent-foreground rounded-lg font-medium hover:bg-accent/90 transition-colors"
-                >
-                  Go to Dashboard
-                </Link>
-              ) : (
-                <>
+            <BlurFade inView delay={0.2}>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                {isAuthenticated ? (
                   <Link
-                    to="/auth"
-                    className="inline-flex items-center justify-center px-8 py-3 bg-accent text-accent-foreground rounded-lg font-medium hover:bg-accent/90 transition-colors"
+                    to="/home"
+                    className="inline-flex items-center justify-center px-8 py-3 bg-accent text-accent-foreground rounded-full font-medium hover:bg-accent/90 transition-colors"
                   >
-                    Get Started
+                    Go to Dashboard
                   </Link>
-                  <Link
-                    to="/auth"
-                    className="inline-flex items-center justify-center px-8 py-3 border border-accent text-accent rounded-lg font-medium hover:bg-accent/10 transition-colors"
-                  >
-                    Sign Up
-                  </Link>
-                </>
-              )}
-            </div>
+                ) : (
+                  <>
+                    <Link
+                      to="/auth"
+                      className="inline-flex items-center justify-center px-8 py-3 bg-accent text-accent-foreground rounded-full font-medium hover:bg-accent/90 transition-colors"
+                    >
+                      Get Started
+                    </Link>
+                    <Link
+                      to="/auth"
+                      className="inline-flex items-center justify-center px-8 py-3 border border-accent text-accent rounded-full font-medium hover:bg-accent/10 transition-colors"
+                    >
+                      Sign Up
+                    </Link>
+                  </>
+                )}
+              </div>
+            </BlurFade>
           </div>
         </div>
         {/* <Ripple className="-translate-y-20 opacity-80" /> */}

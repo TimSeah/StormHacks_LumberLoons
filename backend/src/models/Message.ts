@@ -1,6 +1,6 @@
 import mongoose, { Document, Schema } from "mongoose";
 
-export type MessageRole = "user" | "assistant" | "system";
+export type MessageRole = "user" | "assistant" | "system" | "agent";
 
 export interface IMessage {
   role: MessageRole;
@@ -24,7 +24,11 @@ export interface IConversation extends Document {
 
 const MessageSchema = new Schema<IMessage>(
   {
-    role: { type: String, enum: ["user", "assistant", "system"], required: true },
+    role: {
+      type: String,
+      enum: ["user", "assistant", "system", "agent"],
+      required: true,
+    },
     text: { type: String, required: true },
     timestamp: { type: Date, required: true },
   },

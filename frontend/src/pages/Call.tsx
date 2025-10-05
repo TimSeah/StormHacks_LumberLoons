@@ -1,3 +1,4 @@
+import { useCreateConversation } from "@/hooks/history";
 import { useConversation } from "@elevenlabs/react";
 import {
   MicrophoneIcon,
@@ -46,6 +47,7 @@ const Call: React.FC = () => {
   const { user } = useAuth();
   const constraintsRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+  const createConversation = useCreateConversation();
 
   // ElevenLabs conversation hook
   const conversation = useConversation({
@@ -365,10 +367,42 @@ const Call: React.FC = () => {
     }
   };
 
-  const endCall = () => {
+  const endCall = async () => {
+    // Stop video tracks
     if (videoStreamRef.current) {
       videoStreamRef.current.getTracks().forEach((track) => track.stop());
     }
+
+    // Create chat history entry
+    try {
+      const payload = {
+        userId: user?.id?.toString(),
+        callSuccessful: true,
+        callStart: new Date().toISOString(),
+        messages: messages.map((msg) => ({
+          role: msg.type,
+          text: msg.content,
+          timestamp: msg.timestamp.toISOString(),
+        })),
+        summary: lastAgentMessage?.content || "Call ended",
+        raw: {
+          metadata: {
+            topic: "Conversation with Carrie",
+            duration:
+              Date.now() - (messages[0]?.timestamp?.getTime() || Date.now()),
+          },
+        },
+      };
+
+      console.log(payload);
+
+      await createConversation.mutateAsync(payload);
+      console.log("Successfully created chat history entry");
+    } catch (error) {
+      console.error("Failed to create chat history entry:", error);
+    }
+
+    // Navigate back home
     navigate("/home");
   };
 
@@ -401,7 +435,7 @@ const Call: React.FC = () => {
               <h1 className="text-4xl font-medium text-gray-800">
                 {isConversationConnected
                   ? isConversationListening
-                    ? "Carrie is listening"
+                    ? "Carrie is listening..."
                     : "Carrie"
                   : "Connecting to Carrie..."}
               </h1>
@@ -490,7 +524,7 @@ const Call: React.FC = () => {
                 <button
                   onClick={handleSendMessage}
                   disabled={!textInput.trim()}
-                  className="absolute right-2 top-2 bottom-2 px-8 bg-accent rounded-full disabled:opacity-50 flex items-center justify-center"
+                  className="absolute right-2 top-2 bottom-2 px-8 bg-accent rounded-full disabled:opacity-50 flex items-center justify-center opacity-50"
                 >
                   <PaperPlaneTiltIcon size={20} weight="fill" />
                 </button>
