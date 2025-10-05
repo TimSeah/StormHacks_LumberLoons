@@ -7,6 +7,7 @@ import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
 import MainStack from "./pages/MainStack";
 import SignupPage from "./pages/SignupPage";
+import WelcomePopup from "./pages/WelcomePopup"
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
         <Routes>
           {/* Public routes */}
           <Route path="/" element={<LandingPage />} />
+          <Route path="/welcome" element={<WelcomePopup />} />
           <Route path="/auth" element={<AuthPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
