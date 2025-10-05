@@ -6,6 +6,7 @@ import { verifyToken } from "./auth/auth.jwt";
 import authRouter from "./auth/auth.routes";
 import connectDB from "./config/mongodb";
 import livekitRoutes from "./features/livekit/livekit.routes";
+import chatHistoryRoutes from "./features/chat-history-endpoints/chat_history.routes";
 
 dotenv.config();
 
@@ -25,6 +26,7 @@ app.use(express.static(path.join(__dirname, "../public")));
 // mount your API routes
 app.use("/livekit", livekitRoutes);
 app.use("/auth", authRouter);
+app.use("/chat-history", chatHistoryRoutes);
 
 app.get("/", (_req, res) => {
   res.send("test");
