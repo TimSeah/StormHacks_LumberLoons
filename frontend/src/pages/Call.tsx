@@ -183,7 +183,7 @@ const Call: React.FC = () => {
     if (room) {
       liveKitApi.disconnectFromRoom();
     }
-    navigate("/");
+    navigate("/home");
   };
 
   return (

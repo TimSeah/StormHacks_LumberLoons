@@ -1,3 +1,5 @@
+import { BlurFade } from "@/components/ui/blur-fade";
+import { Ripple } from "@/components/ui/ripple";
 import * as Accordion from "@radix-ui/react-accordion";
 import { ChevronDownIcon } from "lucide-react";
 import React from "react";
@@ -13,23 +15,26 @@ const LandingPage: React.FC = () => {
       <TopNavigation />
 
       {/* Hero Section - ~60% screen height */}
-      <section className="h-[60vh] min-h-[500px] flex items-center justify-center">
+      <section className="h-[60vh] min-h-[500px] flex items-center justify-center relative">
         <div className="container mx-auto px-4">
           <div className="text-center max-w-2xl mx-auto">
-            <h1 className="text-6xl font-bold mb-8 text-foreground">
-              Hello World
-            </h1>
+            <BlurFade inView>
+              <h1 className="text-5xl font-bold mb-8 text-foreground">
+                Carrie is around whe you need someone to talk to.
+              </h1>
+            </BlurFade>
 
-            <p className="text-xl text-muted-foreground mb-12">
-              Welcome to Carrie - Your AI companion for emotional support and
-              conversation.
-            </p>
+            <BlurFade inView delay={0.1}>
+              <p className="text-xl text-muted-foreground mb-12">
+                Talk with carrie whenever you need that emotional support.
+              </p>
+            </BlurFade>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               {isAuthenticated ? (
                 <Link
                   to="/home"
-                  className="inline-flex items-center justify-center px-8 py-3 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors"
+                  className="inline-flex items-center justify-center px-8 py-3 bg-accent text-accent-foreground rounded-lg font-medium hover:bg-accent/90 transition-colors"
                 >
                   Go to Dashboard
                 </Link>
@@ -37,13 +42,13 @@ const LandingPage: React.FC = () => {
                 <>
                   <Link
                     to="/auth"
-                    className="inline-flex items-center justify-center px-8 py-3 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors"
+                    className="inline-flex items-center justify-center px-8 py-3 bg-accent text-accent-foreground rounded-lg font-medium hover:bg-accent/90 transition-colors"
                   >
                     Get Started
                   </Link>
                   <Link
                     to="/auth"
-                    className="inline-flex items-center justify-center px-8 py-3 border border-primary text-primary rounded-lg font-medium hover:bg-primary/10 transition-colors"
+                    className="inline-flex items-center justify-center px-8 py-3 border border-accent text-accent rounded-lg font-medium hover:bg-accent/10 transition-colors"
                   >
                     Sign Up
                   </Link>
@@ -52,6 +57,7 @@ const LandingPage: React.FC = () => {
             </div>
           </div>
         </div>
+        <Ripple className="-translate-y-20 opacity-80" />
       </section>
 
       {/* Features Section */}

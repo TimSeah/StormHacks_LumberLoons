@@ -59,7 +59,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setIsLoading(true);
       setError(null);
       const response = await AuthService.signup(data);
-      setUser({ id: response.id, username: response.username });
+      setUser(response.user);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Signup failed";
       setError(errorMessage);
@@ -74,7 +74,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setIsLoading(true);
       setError(null);
       const response = await AuthService.signin(data);
-      setUser({ id: response.id, username: response.username });
+      setUser(response.user);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Signin failed";
       setError(errorMessage);

@@ -20,7 +20,7 @@ export interface LiveKitService {
 
 class LiveKitApi {
   private room: Room | null = null;
-  private wsUrl = "wss://hackathons-sfu-2025-oct-4-n9u399o0.livekit.cloud";
+  private wsUrl = "wss://stormhacks-blar11m6.livekit.cloud";
 
   /**
    * Fetch a token from the backend for LiveKit room access

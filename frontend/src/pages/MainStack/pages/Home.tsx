@@ -22,7 +22,7 @@ const Home: React.FC = () => {
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            className="flex items-center justify-center gap-3 bg-primary text-primary-foreground px-6 py-4 rounded-2xl font-medium transition-colors hover:bg-primary/90 w-full"
+            className="flex items-center justify-center gap-3 bg-accent text-accent-foreground px-6 py-4 rounded-2xl font-medium transition-colors hover:bg-accent/90 w-full"
           >
             <Video size={20} />
             Talk with Carrie

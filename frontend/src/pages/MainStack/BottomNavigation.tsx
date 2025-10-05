@@ -82,9 +82,9 @@ const BottomNavigation: React.FC = () => {
       >
         <Link
           to="/carrie"
-          className="flex lg:hidden aspect-square justify-center flex-col items-center py-2 px-4 h-full rounded-full transition-colors border-primary border-2"
+          className="flex lg:hidden aspect-square justify-center flex-col items-center py-2 px-4 h-full rounded-full transition-colors border-accent border-2"
           style={{
-            boxShadow: "inset 0 0 10px var(--color-primary)",
+            boxShadow: "inset 0 0 10px var(--color-accent)",
           }}
         >
           <Panda size={48} className="rotate-[10deg]" />

@@ -60,7 +60,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onSwitchToSignup }) => {
                 name="username"
                 type="text"
                 required
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-accent focus:border-accent focus:z-10 sm:text-sm"
                 placeholder="Enter your username"
                 value={formData.username}
                 onChange={handleChange}
@@ -79,7 +79,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onSwitchToSignup }) => {
                 name="password"
                 type="password"
                 required
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-accent focus:border-accent focus:z-10 sm:text-sm"
                 placeholder="Enter your password"
                 value={formData.password}
                 onChange={handleChange}
@@ -91,7 +91,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onSwitchToSignup }) => {
             <button
               type="submit"
               disabled={isLoading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-accent hover:bg-accent focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? "Signing in..." : "Sign in"}
             </button>
@@ -102,7 +102,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onSwitchToSignup }) => {
               <button
                 type="button"
                 onClick={onSwitchToSignup}
-                className="text-indigo-600 hover:text-indigo-500"
+                className="text-accent hover:text-accent"
               >
                 Don't have an account? Sign up
               </button>
