@@ -297,6 +297,60 @@ router.post('/message', async (req: Request, res: Response) => {
 });
 
 /**
+ * POST /agent/message-with-emotion
+ * Send a text message to the agent with emotion awareness and get audio response
+ * This includes emotion detection context in the agent's response
+ * 
+ * Body parameters:
+ * - text: The user's message (required)
+ * - roomName: Optional room name for context
+ * - conversationId: Optional conversation ID for context continuity
+ * - dynamicVariables: Optional object with dynamic variables (e.g., { user_name: "John", user_id: "123" })
+ */
+router.post('/message-with-emotion', async (req: Request, res: Response) => {
+  try {
+    const { text, roomName, conversationId, dynamicVariables } = req.body;
+
+    if (!text) {
+      return res.status(400).json({ error: 'text is required' });
+    }
+
+    if (!agentManager) {
+      return res.status(500).json({ error: 'Agent manager not initialized' });
+    }
+
+    console.log(`Processing emotion-aware message: "${text}"`);
+    if (dynamicVariables) {
+      console.log(`Dynamic variables:`, dynamicVariables);
+    }
+
+    // Process the input with emotion awareness
+    const response = await agentManager.processUserMessageWithEmotion(
+      text,
+      roomName,
+      conversationId,
+      dynamicVariables
+    );
+
+    res.json({
+      success: true,
+      input: text,
+      response: response.text,
+      conversationId: response.conversationId,
+      emotion: response.emotion,
+      audioUrl: '/agent/speak', // Frontend can call this with the response text
+      message: 'Message processed successfully with emotion awareness',
+    });
+  } catch (error: any) {
+    console.error('Error processing message with emotion:', error);
+    res.status(500).json({
+      error: 'Failed to process message with emotion',
+      message: error.message,
+    });
+  }
+});
+
+/**
  * POST /agent/transcribe
  * Transcribe audio to text using ElevenLabs Speech-to-Text
  * Accepts audio file upload via multipart/form-data

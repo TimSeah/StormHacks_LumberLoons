@@ -6,6 +6,7 @@
 import { AccessToken, RoomServiceClient } from 'livekit-server-sdk';
 import { ElevenLabsService } from './services/elevenlabs.service';
 import { EventEmitter } from 'events';
+import axios from 'axios';
 
 export interface AgentManagerConfig {
   livekitUrl: string;
@@ -333,6 +334,149 @@ export class AgentManager extends EventEmitter {
       ];
       return fallbackResponses[Math.floor(Math.random() * fallbackResponses.length)];
     }
+  }
+
+  /**
+   * Fetch current emotion data from emotion detector service
+   * @returns Emotion data or null if unavailable
+   */
+  async fetchEmotionData(): Promise<any> {
+    try {
+      const emotionDetectorUrl = process.env.EMOTION_DETECTOR_URL || 'http://localhost:5000';
+      const response = await axios.get(`${emotionDetectorUrl}/api/webhook/emotion`, {
+        timeout: 3000,
+      });
+      return response.data;
+    } catch (error: any) {
+      console.log('Could not fetch emotion data:', error.message);
+      return null;
+    }
+  }
+
+  /**
+   * Process user message with emotion context
+   * This enhances the conversation by including the user's current emotion
+   * 
+   * @param userText - The transcribed user input
+   * @param roomName - Optional room name for context
+   * @param conversationId - Optional conversation ID for context continuity
+   * @param dynamicVariables - Optional dynamic variables to pass to ElevenLabs Agent
+   * @returns Response object with text and audio
+   */
+  async processUserMessageWithEmotion(
+    userText: string,
+    roomName?: string,
+    conversationId?: string,
+    dynamicVariables?: Record<string, string>
+  ): Promise<{ text: string; audio?: Buffer; conversationId?: string; emotion?: any }> {
+    console.log(`Processing user message with emotion: "${userText}"`);
+
+    try {
+      // Fetch current emotion data
+      const emotionData = await this.fetchEmotionData();
+      
+      // Enhance dynamic variables with emotion context
+      const enhancedDynamicVars: Record<string, string> = {
+        ...(dynamicVariables || {}),
+        system__time: new Date().toISOString(),
+        system__room: roomName || 'unknown',
+      };
+
+      // Add emotion context if available
+      if (emotionData && emotionData.face_detected) {
+        enhancedDynamicVars.user_emotion = emotionData.emotion || 'Neutral';
+        enhancedDynamicVars.user_emotion_confidence = (emotionData.confidence * 100).toFixed(0) + '%';
+        enhancedDynamicVars.emotion_context = emotionData.context || '';
+        
+        console.log(`📊 User emotion detected: ${emotionData.emotion} (${(emotionData.confidence * 100).toFixed(0)}%)`);
+      }
+
+      let responseText: string;
+      let newConversationId: string | undefined = conversationId;
+
+      // Try to use ElevenLabs Conversational AI if agent ID is configured
+      if (this.config.agentId) {
+        try {
+          const aiResponse = await this.elevenlabs.conversationalAI(
+            userText,
+            conversationId,
+            enhancedDynamicVars
+          );
+          responseText = aiResponse.text;
+          newConversationId = aiResponse.conversationId;
+          console.log(`🤖 ElevenLabs AI response: "${responseText}"`);
+        } catch (error: any) {
+          console.error('ElevenLabs AI failed, falling back to simple responses:', error.message);
+          responseText = this.getSimpleResponseWithEmotion(userText, emotionData);
+        }
+      } else {
+        // Fallback to simple emotion-aware responses
+        console.log('No agent ID configured, using simple emotion-aware responses');
+        responseText = this.getSimpleResponseWithEmotion(userText, emotionData);
+      }
+
+      console.log(`Final response: "${responseText}"`);
+
+      // Generate audio for the response
+      const audioBuffer = await this.generateSpeech(responseText);
+
+      return {
+        text: responseText,
+        audio: audioBuffer,
+        conversationId: newConversationId,
+        emotion: emotionData,
+      };
+    } catch (error: any) {
+      console.error('Failed to process user message with emotion:', error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Get simple emotion-aware response as fallback
+   */
+  private getSimpleResponseWithEmotion(userText: string, emotionData: any): string {
+    const lowerText = userText.toLowerCase();
+    const emotion = emotionData?.emotion || 'Neutral';
+    const faceDetected = emotionData?.face_detected || false;
+
+    // Emotion-aware greetings
+    if (lowerText.includes('hello') || lowerText.includes('hi')) {
+      if (faceDetected) {
+        if (emotion === 'Happy') {
+          return "Hey! You're looking cheerful today! How can I help you?";
+        } else if (emotion === 'Sad') {
+          return "Hi there. I'm here for you. What's on your mind?";
+        } else if (emotion === 'Angry') {
+          return "Hello. I'm here to help. Take your time and let me know what's bothering you.";
+        }
+      }
+      return "Hey there! How can I help you today?";
+    }
+
+    // Emotion-aware "how are you" responses
+    if (lowerText.includes('how are you')) {
+      if (faceDetected) {
+        if (emotion === 'Happy') {
+          return "I'm doing great, and it looks like you are too! What can I do for you?";
+        } else if (emotion === 'Sad') {
+          return "I'm here for you. It seems like you might be going through something. Want to talk about it?";
+        }
+      }
+      return "I'm doing great, thanks for asking! What can I do for you?";
+    }
+
+    // Default fallback with emotion awareness
+    if (faceDetected && emotion === 'Sad') {
+      return "I'm here to listen and support you. How can I help make things better?";
+    } else if (faceDetected && emotion === 'Angry') {
+      return "I understand you might be upset. Take your time, and let me know how I can assist you.";
+    } else if (faceDetected && emotion === 'Happy') {
+      return "That's wonderful! What would you like to talk about?";
+    }
+
+    // Standard fallback
+    return this.getSimpleResponse(userText);
   }
 
 //   /**

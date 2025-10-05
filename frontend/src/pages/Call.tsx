@@ -160,6 +160,72 @@ const Call: React.FC = () => {
     }
   }, [room]);
 
+  // Effect to capture and send video frames to emotion detector
+  useEffect(() => {
+    let intervalId: number | undefined;
+
+    const captureAndSendFrame = async () => {
+      if (!videoRef.current || !isVideoEnabled) return;
+
+      try {
+        // Create a canvas to capture the current video frame
+        const canvas = document.createElement("canvas");
+        const video = videoRef.current;
+
+        if (video.videoWidth === 0 || video.videoHeight === 0) {
+          return; // Video not ready yet
+        }
+
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+
+        // Draw current video frame to canvas
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        // Convert canvas to base64
+        const frameData = canvas.toDataURL("image/jpeg", 0.8);
+
+        // Send frame to backend
+        const response = await fetch(
+          `${import.meta.env.VITE_API_URL || "http://localhost:3000"}/api/emotion/process-frame`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ frame: frameData }),
+          }
+        );
+
+        if (response.ok) {
+          const result = await response.json();
+          console.log("Emotion detected:", result.emotion);
+        }
+      } catch (error) {
+        console.error("Error sending video frame:", error);
+      }
+    };
+
+    // Start capturing frames every 2 seconds when video is enabled
+    if (room && liveKitApi.isConnected() && isVideoEnabled) {
+      // Initial capture
+      captureAndSendFrame();
+
+      // Set up interval for continuous capture
+      intervalId = window.setInterval(captureAndSendFrame, 2000);
+    }
+
+    // Cleanup
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
+  }, [room, isVideoEnabled]);
+
   // Control button handlers
   const toggleAudio = async () => {
     try {
