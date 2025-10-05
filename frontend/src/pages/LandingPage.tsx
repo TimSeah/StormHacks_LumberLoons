@@ -14,7 +14,7 @@ const LandingPage: React.FC = () => {
       <TopNavigation />
 
       {/* Hero Section - ~60% screen height */}
-      <section className="h-[60vh] min-h-[500px] flex items-center justify-center relative">
+      <section className="h-[90vh] lg:h-[60vh] min-h-[500px] flex items-center justify-center relative">
         <div className="container mx-auto px-4">
           <div className="text-center max-w-2xl mx-auto">
             <BlurFade inView>
@@ -25,8 +25,7 @@ const LandingPage: React.FC = () => {
 
             <BlurFade inView delay={0.1}>
               <p className="text-xl text-muted-foreground mb-12">
-                Carrie is here round-the-clock to support and guide with a 24/7
-                AI therapist, always at your fingertips to help you navigate
+                Carrie is here round-the-clock to support and help you navigate
                 life’s challenges.
               </p>
             </BlurFade>
