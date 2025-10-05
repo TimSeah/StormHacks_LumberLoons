@@ -9,10 +9,10 @@ import connectDB from "./config/mongodb";
 import agentRoutes, {
   initializeAgentManager,
 } from "./features/agent/agent.routes";
-import chatHistoryRoutes from "./features/chat-history-endpoints/chat_history.routes";
-import livekitRoutes from "./features/livekit/livekit.routes";
 import elevenlabsRoutes from "./features/aquireElevenlabKey/aquireKey.routes";
+import chatHistoryRoutes from "./features/chat-history-endpoints/chat_history.routes";
 import emotionRoutes from "./features/emotion/emotion.routes";
+import livekitRoutes from "./features/livekit/livekit.routes";
 
 dotenv.config();
 
@@ -24,8 +24,8 @@ const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN || "http://localhost:3000";
 
 // middleware
 app.use(cors());
-app.use(express.json({ limit: '10mb' })); // Increased limit for base64 video frames
-app.use(express.urlencoded({ limit: '10mb', extended: true }));
+app.use(express.json({ limit: "10mb" })); // Increased limit for base64 video frames
+app.use(express.urlencoded({ limit: "10mb", extended: true }));
 
 // serve static files from /public
 app.use(express.static(path.join(__dirname, "../public")));
@@ -48,9 +48,8 @@ app.use("/livekit", livekitRoutes);
 app.use("/agent", agentRoutes);
 app.use("/auth", authRouter);
 app.use("/chat-history", chatHistoryRoutes);
-app.use("/api/elevenlabs", elevenlabsRoutes);
-app.use("/api/emotion", emotionRoutes);
-
+app.use("/11", elevenlabsRoutes);
+app.use("/emotion", emotionRoutes);
 
 app.get("/", (_req, res) => {
   res.send("test");

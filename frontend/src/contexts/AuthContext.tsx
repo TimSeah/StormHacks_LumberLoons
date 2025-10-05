@@ -62,6 +62,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setError(null);
       const response = await AuthService.signup(data);
       setUser(response.user);
+      navigate("/home");
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Signup failed";
       setError(errorMessage);
@@ -77,6 +78,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setError(null);
       const response = await AuthService.signin(data);
       setUser(response.user);
+      navigate("/home");
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Signin failed";
       setError(errorMessage);
@@ -97,14 +99,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const isAuthenticated = !!user && AuthService.isAuthenticated();
-
-  useEffect(() => {
-    if (!isAuthenticated) {
-      navigate("/login");
-    } else {
-      navigate("/home");
-    }
-  }, [isAuthenticated]);
 
   const value: AuthContextType = {
     user,

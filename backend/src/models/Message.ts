@@ -10,6 +10,7 @@ export interface IMessage {
 
 export interface IConversation extends Document {
   conversationId?: string; // external id from ElevenLabs (optional)
+  remoteId?: string; // external id from ElevenLabs (optional)
   userId?: string;
   agentId?: string;
   callSuccessful?: boolean;
@@ -33,6 +34,7 @@ const MessageSchema = new Schema<IMessage>(
 const ConversationSchema = new Schema<IConversation>(
   {
     conversationId: { type: String, index: true, sparse: true },
+    remoteId: { type: String, index: true, sparse: true },
     userId: { type: String, index: true, sparse: true },
     agentId: { type: String, index: true, sparse: true },
     callSuccessful: { type: Boolean, default: false },

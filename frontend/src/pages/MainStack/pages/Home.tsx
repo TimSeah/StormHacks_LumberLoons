@@ -1,4 +1,5 @@
 import ExpandingButton from "@/components/ExpandingButton";
+import { useAuth } from "@/contexts/AuthContext";
 import { MessageCircleHeart, Panda, Video } from "lucide-react";
 import React from "react";
 import { useNavigate } from "react-router";
@@ -6,6 +7,8 @@ import PageWrapper from "../PageWrapper";
 
 const Home: React.FC = () => {
   const navigation = useNavigate();
+  const { user } = useAuth();
+
   return (
     <PageWrapper className="items-center justify-center ">
       <div className="flex h-min flex-col p-10 bg-surface w-full rounded-4xl">
@@ -13,7 +16,7 @@ const Home: React.FC = () => {
           <Panda size={32} />
           <MessageCircleHeart size={48} className="mb-2" />
         </div>
-        <h1 className="text-4xl font-bold mb-2">Hi, User!</h1>
+        <h1 className="text-4xl font-bold mb-2">Hi, {user?.username}!</h1>
         <p className="text-lg mb-8">
           I'm here to listen and help. How are you today?
         </p>

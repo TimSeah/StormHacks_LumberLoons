@@ -1,105 +1,194 @@
+import { useConversation } from "@elevenlabs/react";
 import {
   MicrophoneIcon,
   MicrophoneSlashIcon,
+  PaperPlaneTiltIcon,
   PhoneDisconnectIcon,
   VideoCameraIcon,
   VideoCameraSlashIcon,
 } from "@phosphor-icons/react";
-import type { Room } from "livekit-client";
 import { Panda } from "lucide-react";
-import { motion } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
-import liveKitApi from "../api/livekit";
+import ElevenLabsApi from "../api/elevenlabs";
 import ActivityIndicator from "../components/ActivityIndicator";
 import { useAuth } from "../contexts/AuthContext";
+
+interface ConversationMessage {
+  id: string;
+  type: "user" | "agent" | "system";
+  content: string;
+  timestamp: Date;
+}
 
 const Call: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [connectionError, setConnectionError] = useState<string | null>(null);
-  const [room, setRoom] = useState<Room | null>(null);
   const [isListening, setIsListening] = useState(false);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
+
+  // ElevenLabs conversation state
+  const [messages, setMessages] = useState<ConversationMessage[]>([]);
+  const [textInput, setTextInput] = useState("");
+  const [conversationError, setConversationError] = useState<string | null>(
+    null
+  );
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const videoContainerRef = useRef<HTMLDivElement>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyzerRef = useRef<AnalyserNode | null>(null);
   const micStreamRef = useRef<MediaStream | null>(null);
+  const videoStreamRef = useRef<MediaStream | null>(null);
 
   const { user } = useAuth();
   const constraintsRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
-  const isConnectingRef = useRef(false); // Prevent duplicate connections
+
+  // ElevenLabs conversation hook
+  const conversation = useConversation({
+    micMuted: !isAudioEnabled,
+    onConnect: () => {
+      const systemMessage: ConversationMessage = {
+        id: `system-${Date.now()}`,
+        type: "system",
+        content: "Connected to ElevenLabs agent",
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, systemMessage]);
+      setConversationError(null);
+    },
+
+    onDisconnect: () => {
+      const systemMessage: ConversationMessage = {
+        id: `system-${Date.now()}`,
+        type: "system",
+        content: "Disconnected from ElevenLabs agent",
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, systemMessage]);
+    },
+
+    onMessage: (message) => {
+      const messageType = message.source === "user" ? "user" : "agent";
+      const conversationMessage: ConversationMessage = {
+        id: `${messageType}-${Date.now()}-${Math.random()}`,
+        type: messageType,
+        content: message.message || "",
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, conversationMessage]);
+    },
+
+    onError: (errorEvent) => {
+      console.error("ElevenLabs conversation error:", errorEvent);
+      setConversationError("Conversation error occurred");
+    },
+  });
+
+  // Conversation helper functions
+  const handleSendMessage = async () => {
+    if (!textInput.trim() || conversation.status !== "connected") return;
+
+    try {
+      conversation.sendUserMessage(textInput);
+
+      const userMessage: ConversationMessage = {
+        id: `user-${Date.now()}`,
+        type: "user",
+        content: textInput,
+        timestamp: new Date(),
+      };
+
+      setMessages((prev) => [...prev, userMessage]);
+      setTextInput("");
+    } catch (error) {
+      console.error("Failed to send message:", error);
+    }
+  };
+
+  // Derived state
+  const isConversationConnected = conversation.status === "connected";
+  const isConversationListening =
+    conversation.isSpeaking === false && isConversationConnected;
+  const lastUserMessage = messages
+    .filter((m) => m.type === "user")
+    .slice(-1)[0];
+  const lastAgentMessage = messages
+    .filter((m) => m.type === "agent")
+    .slice(-1)[0];
 
   useEffect(() => {
-    const connectToLiveKit = async () => {
+    const setupMediaDevices = async () => {
       if (!user) {
         setConnectionError("User not authenticated");
         setIsLoading(false);
         return;
       }
 
-      // Prevent duplicate connection attempts
-      if (isConnectingRef.current) {
-        console.log("Already connecting, skipping...");
-        return;
-      }
-
       try {
-        isConnectingRef.current = true;
         setIsLoading(true);
         setConnectionError(null);
 
-        // Generate unique identity to prevent duplicate connections
-        const uniqueIdentity = `${user.username || `user-${user.id}`}-${Date.now()}`;
-
-        // Connect to LiveKit room
-        const connectedRoom = await liveKitApi.connectToRoom({
-          identity: uniqueIdentity,
-          roomName: "session-1", // You can make this dynamic based on your needs
-          enableAudio: true,
-          enableVideo: true,
+        // Get user media for video and audio
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: true,
         });
 
-        setRoom(connectedRoom);
-        console.log("Successfully connected to LiveKit");
-      } catch (error) {
-        console.error("Failed to connect to LiveKit:", error);
-        setConnectionError(
-          error instanceof Error ? error.message : "Failed to connect to call"
-        );
-      } finally {
+        videoStreamRef.current = stream;
+        micStreamRef.current = stream;
+
+        // Setup video
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          videoRef.current.play().catch(console.error);
+        }
+
+        console.log("Successfully setup media devices");
         setIsLoading(false);
-        isConnectingRef.current = false;
+      } catch (error) {
+        console.error("Failed to access media devices:", error);
+        setConnectionError(
+          error instanceof Error
+            ? error.message
+            : "Failed to access camera/microphone"
+        );
+        setIsLoading(false);
       }
     };
 
-    connectToLiveKit();
+    setupMediaDevices();
 
     // Cleanup on unmount
     return () => {
-      console.log("Cleaning up LiveKit connection...");
-      liveKitApi.disconnectFromRoom();
-      isConnectingRef.current = false;
+      console.log("Cleaning up media streams...");
+      if (videoStreamRef.current) {
+        videoStreamRef.current.getTracks().forEach((track) => track.stop());
+      }
+      if (
+        micStreamRef.current &&
+        micStreamRef.current !== videoStreamRef.current
+      ) {
+        micStreamRef.current.getTracks().forEach((track) => track.stop());
+      }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Only connect once on mount, user is checked inside
+  }, [user]);
 
   // Effect to setup microphone audio detection
   useEffect(() => {
     const setupAudioDetection = async () => {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          audio: true,
-        });
-        micStreamRef.current = stream;
+        if (!micStreamRef.current) return;
 
         const audioContext = new AudioContext();
         audioContextRef.current = audioContext;
 
-        const source = audioContext.createMediaStreamSource(stream);
+        const source = audioContext.createMediaStreamSource(
+          micStreamRef.current
+        );
         const analyzer = audioContext.createAnalyser();
         analyzer.fftSize = 256;
         analyzer.smoothingTimeConstant = 0.8;
@@ -128,50 +217,17 @@ const Call: React.FC = () => {
       }
     };
 
-    if (room && liveKitApi.isConnected()) {
+    if (micStreamRef.current && !isLoading) {
       setupAudioDetection();
     }
 
     return () => {
       // Cleanup audio detection
-      if (micStreamRef.current) {
-        micStreamRef.current.getTracks().forEach((track) => track.stop());
-      }
       if (audioContextRef.current) {
         audioContextRef.current.close();
       }
     };
-  }, [room]);
-
-  // Effect to setup video when room is connected
-  useEffect(() => {
-    const setupVideo = async () => {
-      if (room && liveKitApi.isConnected() && videoRef.current) {
-        // Small delay to ensure video track is published
-        setTimeout(() => {
-          const videoElement = liveKitApi.getLocalVideoElement();
-          if (videoElement && videoRef.current) {
-            // Copy the video stream to our ref element
-            videoRef.current.srcObject = videoElement.srcObject;
-            videoRef.current.play().catch(console.error);
-          }
-        }, 1000);
-      }
-    };
-
-    setupVideo();
-  }, [room]);
-
-  // Effect to sync initial audio/video state with LiveKit
-  useEffect(() => {
-    if (room && liveKitApi.isConnected()) {
-      // Sync initial state after a short delay to allow track publishing
-      setTimeout(() => {
-        setIsAudioEnabled(!liveKitApi.isAudioMuted());
-        setIsVideoEnabled(!liveKitApi.isVideoMuted());
-      }, 1500);
-    }
-  }, [room]);
+  }, [isLoading]);
 
   // Effect to capture and send video frames to emotion detector
   useEffect(() => {
@@ -206,7 +262,9 @@ const Call: React.FC = () => {
 
         // Send frame to backend
         const response = await fetch(
-          `${import.meta.env.VITE_API_URL || "http://localhost:3000"}/api/emotion/process-frame`,
+          `${
+            import.meta.env.VITE_API_URL || "http://localhost:3000"
+          }/emotion/process-frame`,
           {
             method: "POST",
             headers: {
@@ -226,17 +284,17 @@ const Call: React.FC = () => {
     };
 
     // Start capturing frames every 2 seconds when video is enabled
-    if (room && liveKitApi.isConnected() && isVideoEnabled) {
+    if (!isLoading && isVideoEnabled && videoStreamRef.current) {
       // Initial capture
       captureAndSendFrame();
 
       // Set up interval for continuous capture
       intervalId = window.setInterval(() => {
-        // Check connection status before each capture
-        if (liveKitApi.isConnected() && isVideoEnabled) {
+        // Check video status before each capture
+        if (isVideoEnabled && videoStreamRef.current) {
           captureAndSendFrame();
         } else {
-          console.log('Skipping frame capture - not connected or video disabled');
+          console.log("Skipping frame capture - video disabled");
         }
       }, 2000);
     }
@@ -247,13 +305,47 @@ const Call: React.FC = () => {
         clearInterval(intervalId);
       }
     };
-  }, [room, isVideoEnabled]);
+  }, [isLoading, isVideoEnabled]);
+
+  // Auto-start ElevenLabs conversation when media is ready
+  useEffect(() => {
+    const startConversation = async () => {
+      if (
+        !isLoading &&
+        videoStreamRef.current &&
+        micStreamRef.current &&
+        conversation.status !== "connected"
+      ) {
+        try {
+          const conversationToken = await ElevenLabsApi.getConversationToken();
+          await conversation.startSession({
+            conversationToken,
+            connectionType: "webrtc",
+          });
+        } catch (error) {
+          console.error("Failed to start ElevenLabs conversation:", error);
+          setConversationError("Failed to connect to AI agent");
+        }
+      }
+    };
+
+    // Start conversation after a short delay to ensure everything is ready
+    if (!isLoading && videoStreamRef.current && micStreamRef.current) {
+      const timeoutId = setTimeout(startConversation, 2000);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [isLoading, conversation]);
 
   // Control button handlers
   const toggleAudio = async () => {
     try {
-      const newState = await liveKitApi.toggleAudio();
-      setIsAudioEnabled(newState);
+      if (micStreamRef.current) {
+        const audioTracks = micStreamRef.current.getAudioTracks();
+        audioTracks.forEach((track) => {
+          track.enabled = !track.enabled;
+        });
+        setIsAudioEnabled(!isAudioEnabled);
+      }
     } catch (error) {
       console.error("Failed to toggle audio:", error);
     }
@@ -261,16 +353,21 @@ const Call: React.FC = () => {
 
   const toggleVideo = async () => {
     try {
-      const newState = await liveKitApi.toggleVideo();
-      setIsVideoEnabled(newState);
+      if (videoStreamRef.current) {
+        const videoTracks = videoStreamRef.current.getVideoTracks();
+        videoTracks.forEach((track) => {
+          track.enabled = !track.enabled;
+        });
+        setIsVideoEnabled(!isVideoEnabled);
+      }
     } catch (error) {
       console.error("Failed to toggle video:", error);
     }
   };
 
   const endCall = () => {
-    if (room) {
-      liveKitApi.disconnectFromRoom();
+    if (videoStreamRef.current) {
+      videoStreamRef.current.getTracks().forEach((track) => track.stop());
     }
     navigate("/home");
   };
@@ -281,12 +378,12 @@ const Call: React.FC = () => {
         {isLoading ? (
           <div className="flex flex-col items-center justify-center gap-4">
             <ActivityIndicator />
-            <p className="text-gray-600">Connecting to call...</p>
+            <p className="text-gray-600">Setting up camera and microphone...</p>
           </div>
         ) : connectionError ? (
           <div className="flex flex-col items-center justify-center gap-4">
             <div className="text-red-500 text-center">
-              <h3 className="text-lg font-semibold mb-2">Connection Failed</h3>
+              <h3 className="text-lg font-semibold mb-2">Setup Failed</h3>
               <p className="text-sm">{connectionError}</p>
             </div>
             <button
@@ -296,14 +393,32 @@ const Call: React.FC = () => {
               Try Again
             </button>
           </div>
-        ) : room && liveKitApi.isConnected() ? (
+        ) : (
           <>
             {/* Main Center Text */}
             <div className="flex flex-col items-center justify-center">
               <Panda size={64} className="mb-4" />
               <h1 className="text-4xl font-medium text-gray-800">
-                {isListening ? "Carrie is listening" : "Carrie"}
+                {isConversationConnected
+                  ? isConversationListening
+                    ? "Carrie is listening"
+                    : "Carrie"
+                  : "Connecting to Carrie..."}
               </h1>
+              {/* Show latest agent message */}
+              {lastAgentMessage && (
+                <div className="mt-4 max-w-md text-center">
+                  <p className="text-lg text-gray-600 leading-relaxed">
+                    "{lastAgentMessage.content}"
+                  </p>
+                </div>
+              )}
+              {/* Show connection status */}
+              {conversationError && (
+                <div className="mt-2 text-red-500 text-sm">
+                  {conversationError}
+                </div>
+              )}
             </div>
 
             {/* Draggable Video Mirror */}
@@ -343,53 +458,88 @@ const Call: React.FC = () => {
             </div>
 
             {/* Control Buttons - Background Layer */}
-            <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex gap-6 z-0">
-              {/* Microphone Toggle */}
-              <button
-                onClick={toggleAudio}
-                className={`w-16 h-16 rounded-full flex items-center justify-center transition-colors shadow-lg ${
-                  isAudioEnabled
-                    ? "bg-gray-600 hover:bg-gray-700 text-white"
-                    : "bg-red-500 hover:bg-red-600 text-white"
-                }`}
-              >
-                {isAudioEnabled ? (
-                  <MicrophoneIcon size={24} weight="fill" />
-                ) : (
-                  <MicrophoneSlashIcon size={24} />
-                )}
-              </button>
+            <div className="absolute bottom-0 left-0 right-0 p-8">
+              {/* Last User Message - Above Input */}
+              <div className="mb-4 flex justify-center">
+                <AnimatePresence mode="wait">
+                  {lastUserMessage && (
+                    <motion.div
+                      key={lastUserMessage.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 20 }}
+                      transition={{ duration: 0.3 }}
+                      className="bg-accent text-accent-foreground px-4 py-2 rounded-full max-w-md text-center shadow-lg"
+                    >
+                      {lastUserMessage.content}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
 
-              {/* End Call Button */}
-              <button
-                onClick={endCall}
-                className="w-20 h-16 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center transition-colors shadow-lg"
-              >
-                <PhoneDisconnectIcon size={24} weight="fill" />
-              </button>
+              {/* Conversation Controls */}
+              <div className="mb-4 relative">
+                <input
+                  type="text"
+                  value={textInput}
+                  onChange={(e) => setTextInput(e.target.value)}
+                  onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
+                  placeholder="Type a message..."
+                  className="w-full p-4 pr-16 rounded-full focus:outline-none bg-elevated"
+                />
+                <button
+                  onClick={handleSendMessage}
+                  disabled={!textInput.trim()}
+                  className="absolute right-2 top-2 bottom-2 px-8 bg-accent rounded-full disabled:opacity-50 flex items-center justify-center"
+                >
+                  <PaperPlaneTiltIcon size={20} weight="fill" />
+                </button>
+              </div>
 
-              {/* Video Toggle */}
-              <button
-                onClick={toggleVideo}
-                className={`w-16 h-16 rounded-full flex items-center justify-center transition-colors shadow-lg ${
-                  isVideoEnabled
-                    ? "bg-gray-600 hover:bg-gray-700 text-white"
-                    : "bg-red-500 hover:bg-red-600 text-white"
-                }`}
-              >
-                {isVideoEnabled ? (
-                  <VideoCameraIcon size={24} weight="fill" />
-                ) : (
-                  <VideoCameraSlashIcon size={24} />
-                )}
-              </button>
+              {/* Call Controls */}
+              <div className="flex flex-row w-full justify-center items-center gap-6">
+                {/* Microphone Toggle */}
+                <button
+                  onClick={toggleAudio}
+                  className={`w-16 h-16 rounded-full flex items-center justify-center transition-colors shadow-lg ${
+                    isAudioEnabled
+                      ? "bg-gray-600 hover:bg-gray-700 text-white"
+                      : "bg-red-500 hover:bg-red-600 text-white"
+                  }`}
+                >
+                  {isAudioEnabled ? (
+                    <MicrophoneIcon size={24} weight="fill" />
+                  ) : (
+                    <MicrophoneSlashIcon size={24} />
+                  )}
+                </button>
+
+                {/* End Call Button */}
+                <button
+                  onClick={endCall}
+                  className="w-20 h-16 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center transition-colors shadow-lg"
+                >
+                  <PhoneDisconnectIcon size={24} weight="fill" />
+                </button>
+
+                {/* Video Toggle */}
+                <button
+                  onClick={toggleVideo}
+                  className={`w-16 h-16 rounded-full flex items-center justify-center transition-colors shadow-lg ${
+                    isVideoEnabled
+                      ? "bg-gray-600 hover:bg-gray-700 text-white"
+                      : "bg-red-500 hover:bg-red-600 text-white"
+                  }`}
+                >
+                  {isVideoEnabled ? (
+                    <VideoCameraIcon size={24} weight="fill" />
+                  ) : (
+                    <VideoCameraSlashIcon size={24} />
+                  )}
+                </button>
+              </div>
             </div>
           </>
-        ) : (
-          <div className="flex flex-col items-center justify-center gap-4">
-            <ActivityIndicator />
-            <p className="text-gray-600">Setting up call...</p>
-          </div>
         )}
       </div>
     </div>

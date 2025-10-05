@@ -1,5 +1,4 @@
 import { BlurFade } from "@/components/ui/blur-fade";
-import { Ripple } from "@/components/ui/ripple";
 import * as Accordion from "@radix-ui/react-accordion";
 import { ChevronDownIcon } from "lucide-react";
 import React from "react";
@@ -57,7 +56,7 @@ const LandingPage: React.FC = () => {
             </div>
           </div>
         </div>
-        <Ripple className="-translate-y-20 opacity-80" />
+        {/* <Ripple className="-translate-y-20 opacity-80" /> */}
       </section>
 
       {/* Features Section */}

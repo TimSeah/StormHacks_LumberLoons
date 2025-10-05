@@ -1,3 +1,4 @@
+import { StripedPattern } from "@/components/magicui/striped-pattern";
 import React, { useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import type { SignupRequest } from "../types/auth";
@@ -45,8 +46,10 @@ const SignupPage: React.FC<SignupPageProps> = ({ onSwitchToLogin }) => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8 relative">
+      <StripedPattern className="[mask-image:radial-gradient(300px_circle_at_center,white,transparent)] opacity-50" />
+
+      <div className="max-w-md w-full space-y-8 z-10">
         <div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
             Create your account
@@ -63,7 +66,7 @@ const SignupPage: React.FC<SignupPageProps> = ({ onSwitchToLogin }) => {
             <div>
               <label
                 htmlFor="username"
-                className="block text-sm font-medium text-gray-700"
+                className="block text-md font-medium  mb-2"
               >
                 Username
               </label>
@@ -72,7 +75,7 @@ const SignupPage: React.FC<SignupPageProps> = ({ onSwitchToLogin }) => {
                 name="username"
                 type="text"
                 required
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-accent focus:border-accent focus:z-10 sm:text-sm"
+                className="mt-1 appearance-none relative block w-full px-6 py-4 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-full  sm:text-md"
                 placeholder="Choose a username"
                 value={formData.username}
                 onChange={handleChange}
@@ -82,7 +85,7 @@ const SignupPage: React.FC<SignupPageProps> = ({ onSwitchToLogin }) => {
             <div>
               <label
                 htmlFor="password"
-                className="block text-sm font-medium text-gray-700"
+                className="block text-md font-medium  mb-2"
               >
                 Password
               </label>
@@ -91,7 +94,7 @@ const SignupPage: React.FC<SignupPageProps> = ({ onSwitchToLogin }) => {
                 name="password"
                 type="password"
                 required
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-accent focus:border-accent focus:z-10 sm:text-sm"
+                className="mt-1 appearance-none relative block w-full px-6 py-4 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-full  sm:text-md"
                 placeholder="Choose a password"
                 value={formData.password}
                 onChange={handleChange}
@@ -101,7 +104,7 @@ const SignupPage: React.FC<SignupPageProps> = ({ onSwitchToLogin }) => {
             <div>
               <label
                 htmlFor="confirmPassword"
-                className="block text-sm font-medium text-gray-700"
+                className="block text-md font-medium  mb-2"
               >
                 Confirm Password
               </label>
@@ -110,7 +113,7 @@ const SignupPage: React.FC<SignupPageProps> = ({ onSwitchToLogin }) => {
                 name="confirmPassword"
                 type="password"
                 required
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-accent focus:border-accent focus:z-10 sm:text-sm"
+                className="mt-1 appearance-none relative block w-full px-6 py-4 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-full  sm:text-md"
                 placeholder="Confirm your password"
                 value={confirmPassword}
                 onChange={handleChange}
@@ -122,7 +125,7 @@ const SignupPage: React.FC<SignupPageProps> = ({ onSwitchToLogin }) => {
             <button
               type="submit"
               disabled={isLoading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-accent hover:bg-accent focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent disabled:opacity-50 disabled:cursor-not-allowed"
+              className="group relative w-full flex justify-center py-4 px-6 border border-transparent text-lg font-medium rounded-full bg-elevated hover:bg-elevated focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-elevated disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? "Creating account..." : "Sign up"}
             </button>
@@ -130,11 +133,7 @@ const SignupPage: React.FC<SignupPageProps> = ({ onSwitchToLogin }) => {
 
           {onSwitchToLogin && (
             <div className="text-center">
-              <button
-                type="button"
-                onClick={onSwitchToLogin}
-                className="text-accent hover:text-accent"
-              >
+              <button type="button" onClick={onSwitchToLogin} className="">
                 Already have an account? Sign in
               </button>
             </div>
