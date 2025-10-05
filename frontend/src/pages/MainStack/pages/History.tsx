@@ -1,4 +1,4 @@
-import { MessageCircleDashed } from "lucide-react";
+import { ChatsTeardropIcon } from "@phosphor-icons/react";
 import React from "react";
 import { useNavigate } from "react-router";
 import ActivityIndicator from "../../../components/ActivityIndicator";
@@ -29,7 +29,7 @@ const History: React.FC = () => {
                 onClick={() => handleChatLogClick(chatLog.id)}
                 className="bg-surface rounded-3xl px-6 py-10 flex flex-row gap-4 items-center cursor-pointer hover:bg-surface/80 transition-colors"
               >
-                <MessageCircleDashed />
+                <ChatsTeardropIcon size={24} />
                 <div>
                   <p className="text-lg font-medium">{chatLog.title}</p>
                   <p className="text-sm text-muted-foreground">
