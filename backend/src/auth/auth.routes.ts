@@ -1,11 +1,11 @@
 import { Router } from "express";
-import { signup, signin } from "./auth.controller";
+import { signin, signup } from "./auth.controller";
 
-const router = Router();
+const authRouter = Router();
 // Authentication routes for endpoints, handlers in auth.controller.ts
 // mounted in /api/auth
 
-router.post("/signup", signup);
-router.post("/signin", signin);
+authRouter.post("/signup", signup);
+authRouter.post("/signin", signin);
 
-export default router;
+export default authRouter;
