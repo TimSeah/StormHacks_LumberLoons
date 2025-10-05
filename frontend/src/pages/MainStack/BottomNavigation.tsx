@@ -36,16 +36,14 @@ const BottomNavigation: React.FC = () => {
             <Link
               key={item.path}
               to={item.path}
-              className={`flex flex-col items-center flex-1 rounded-full px-2 py-2 transition-colors relative z-10 ${
-                isActive
-                  ? "text-foreground"
-                  : "text-muted-foreground hover:text-foreground hover:bg-accent"
+              className={`flex flex-col items-center flex-1 rounded-full px-2 py-2 relative z-10 ${
+                isActive ? "text-foreground" : "text-muted-foreground "
               }`}
             >
               {isActive && (
                 <motion.div
                   layoutId="activeTab"
-                  className="absolute inset-0 bg-elevated rounded-full"
+                  className="absolute inset-0 bg-elevated rounded-full -z-10"
                   style={{ zIndex: -1 }}
                   transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                 />
@@ -56,12 +54,22 @@ const BottomNavigation: React.FC = () => {
           );
         })}
       </div>
-      <Link
-        to="/new"
-        className="flex aspect-square ml-4 justify-center flex-col items-center py-2 px-4 h-full rounded-full transition-colors border-border border-1"
+      <motion.div
+        className="ml-4"
+        whileHover={{ scale: 1.05, rotate: -10 }}
+        whileTap={{ scale: 0.95 }}
+        transition={{ type: "spring", stiffness: 300 }}
       >
-        <Panda size={48} className="rotate-[10deg]" />
-      </Link>
+        <Link
+          to="/carrie"
+          className="flex aspect-square justify-center flex-col items-center py-2 px-4 h-full rounded-full transition-colors border-primary border-2"
+          style={{
+            boxShadow: "inset 0 0 10px var(--color-primary)",
+          }}
+        >
+          <Panda size={48} className="rotate-[10deg]" />
+        </Link>
+      </motion.div>
     </nav>
   );
 };

@@ -1,7 +1,8 @@
-import { MessageCircleHeart, Mic, Panda, Video } from "lucide-react";
+import { MessageCircleHeart, Panda, Video } from "lucide-react";
 import { motion } from "motion/react";
 import React from "react";
-import PageWrapper from "../components/PageWrapper";
+import { Link } from "react-router";
+import PageWrapper from "../PageWrapper";
 
 const Home: React.FC = () => {
   return (
@@ -17,23 +18,25 @@ const Home: React.FC = () => {
         </p>
       </div>
       <div className="flex flex-row sm:flex-row gap-4 mt-4 w-full">
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          className="flex items-center justify-center gap-3 bg-primary text-primary-foreground px-6 py-4 rounded-2xl font-medium transition-colors hover:bg-primary/90 w-full"
-        >
-          <Video size={20} />
-          Video call
-        </motion.button>
+        <Link to="/carrie" className="flex-1">
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="flex items-center justify-center gap-3 bg-primary text-primary-foreground px-6 py-4 rounded-2xl font-medium transition-colors hover:bg-primary/90 w-full"
+          >
+            <Video size={20} />
+            Talk with Carrie
+          </motion.button>
+        </Link>
 
-        <motion.button
+        {/* <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           className="flex items-center justify-center gap-3 bg-secondary text-secondary-foreground px-6 py-4 rounded-2xl font-medium transition-colors hover:bg-secondary/90 w-full"
         >
           <Mic size={20} />
           Chat with me
-        </motion.button>
+        </motion.button> */}
       </div>
     </PageWrapper>
   );
