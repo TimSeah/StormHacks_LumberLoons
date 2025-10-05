@@ -3,7 +3,7 @@
   "compilerOptions": {
     "target": "ES2020",
     "module": "commonjs",
-    "rootDir": "backend/livekit/src",
+    "rootDir": "backend/src",
     "outDir": "dist",
     "esModuleInterop": true,
     "skipLibCheck": true,
