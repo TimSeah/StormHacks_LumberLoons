@@ -12,11 +12,13 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@types/mongoose": "^5.11.97",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^4.21.2",
     "livekit": "^0.0.1",
-    "livekit-server-sdk": "^2.14.0"
+    "livekit-server-sdk": "^2.14.0",
+    "mongoose": "^8.19.0"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",
