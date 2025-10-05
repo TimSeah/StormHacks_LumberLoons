@@ -1,113 +1,125 @@
 import { Router, Request, Response } from "express";
-import { ElevenLabsClient } from "@elevenlabs/elevenlabs-js";
+import fetch from "node-fetch";
 import { verifyToken } from "../../auth/auth.jwt";
+import Conversation, { IConversation } from "../../models/Message";
 import "dotenv/config";
 
 const router = Router();
 
-// Initialize ElevenLabs client
-const elevenlabs = new ElevenLabsClient({
-  apiKey: process.env.ELEVENLABS_API_KEY,
-});
-
-// List all conversations with optional filtering
+// List conversations from DB (supports simple filtering / pagination)
 router.get("/", verifyToken, async (req: Request, res: Response) => {
   try {
-    const {
-      cursor,
-      agent_id,
-      call_successful,
-      call_start_before_unix,
-      call_start_after_unix,
-      user_id,
-      page_size = 30,
-      summary_mode = "exclude"
-    } = req.query;
+    const { page = "1", limit = "30", user_id, agent_id } = req.query;
+    const pageNum = Math.max(1, parseInt(page as string, 10));
+    const pageSize = Math.min(100, parseInt(limit as string, 10));
 
-    console.log("Fetching conversations with params:", req.query);
+    const filter: any = {};
+    if (user_id) filter.userId = user_id;
+    if (agent_id) filter.agentId = agent_id;
 
-    // Build the request parameters
-    const params: any = {};
-    
-    if (cursor) params.cursor = cursor as string;
-    if (agent_id) params.agent_id = agent_id as string;
-    if (call_successful) params.call_successful = call_successful as string;
-    if (call_start_before_unix) params.call_start_before_unix = parseInt(call_start_before_unix as string);
-    if (call_start_after_unix) params.call_start_after_unix = parseInt(call_start_after_unix as string);
-    if (user_id) params.user_id = user_id as string;
-    if (page_size) params.page_size = parseInt(page_size as string);
-    if (summary_mode) params.summary_mode = summary_mode as string;
+    const docs = await Conversation.find(filter)
+      .sort({ createdAt: -1 })
+      .skip((pageNum - 1) * pageSize)
+      .limit(pageSize)
+      .lean()
+      .exec();
 
-    // Make API call to ElevenLabs
-    const response = await fetch(`https://api.elevenlabs.io/v1/convai/conversations?${new URLSearchParams(params)}`, {
-      method: 'GET',
-      headers: {
-        'xi-api-key': process.env.ELEVENLABS_API_KEY!,
-        'Content-Type': 'application/json',
-      },
-    });
+    const total = await Conversation.countDocuments(filter).exec();
 
-    if (!response.ok) {
-      throw new Error(`ElevenLabs API error: ${response.status} ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    
-    res.json({
-      success: true,
-      data,
-    });
-
+    res.json({ success: true, data: docs, meta: { page: pageNum, limit: pageSize, total } });
   } catch (error) {
-    console.error("Error fetching conversations:", error);
-    res.status(500).json({
-      success: false,
-      error: "Failed to fetch chat history",
-      message: error instanceof Error ? error.message : "Unknown error",
-    });
+    console.error("Error listing conversations:", error);
+    res.status(500).json({ success: false, error: "Failed to list conversations" });
   }
 });
 
-// Get detailed conversation by ID
+// Get one by conversationId (DB lookup). Optionally fetch remote and upsert if ?fetch_remote=true
 router.get("/:conversationId", verifyToken, async (req: Request, res: Response) => {
   try {
     const { conversationId } = req.params;
+    const fetchRemote = req.query.fetch_remote === "true";
 
-    console.log(`Fetching conversation details for ID: ${conversationId}`);
+    let doc = await Conversation.findOne({ conversationId }).lean().exec();
 
-    // Make API call to ElevenLabs for specific conversation
-    const response = await fetch(`https://api.elevenlabs.io/v1/convai/conversations/${conversationId}`, {
-      method: 'GET',
-      headers: {
-        'xi-api-key': process.env.ELEVENLABS_API_KEY!,
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      if (response.status === 404) {
-        return res.status(404).json({
-          success: false,
-          error: "Conversation not found",
-        });
+    if (!doc && fetchRemote) {
+      // fallback to ElevenLabs remote fetch then upsert
+      const resp = await fetch(`https://api.elevenlabs.io/v1/convai/conversations/${conversationId}`, {
+        method: "GET",
+        headers: { "xi-api-key": process.env.ELEVENLABS_API_KEY!, "Content-Type": "application/json" },
+      });
+      if (!resp.ok) {
+        if (resp.status === 404) return res.status(404).json({ success: false, error: "Conversation not found" });
+        throw new Error(`ElevenLabs API error: ${resp.statusText}`);
       }
-      throw new Error(`ElevenLabs API error: ${response.status} ${response.statusText}`);
+      const remote = await resp.json();
+      // transform remote into our shape if needed
+      const upsert: Partial<IConversation> = {
+        conversationId,
+        raw: remote,
+        // try to map fields if remote provides them (example)
+        // messages: remote.messages?.map(m => ({ role: m.role, text: m.text, timestamp: new Date(m.timestamp) })) || []
+      };
+      doc = await Conversation.findOneAndUpdate({ conversationId }, upsert as any, { upsert: true, new: true }).lean().exec();
     }
 
-    const data = await response.json();
-    
-    res.json({
-      success: true,
-      data,
-    });
+    if (!doc) return res.status(404).json({ success: false, error: "Conversation not found" });
 
+    res.json({ success: true, data: doc });
   } catch (error) {
-    console.error("Error fetching conversation details:", error);
-    res.status(500).json({
-      success: false,
-      error: "Failed to fetch conversation details",
-      message: error instanceof Error ? error.message : "Unknown error",
+    console.error("Error fetching conversation:", error);
+    res.status(500).json({ success: false, error: "Failed to fetch conversation" });
+  }
+});
+
+// Create a new conversation record (client or server can call this)
+router.post("/", verifyToken, async (req: Request, res: Response) => {
+  try {
+    const payload = req.body;
+    // minimal validation
+    if (!payload.messages || !Array.isArray(payload.messages)) {
+      return res.status(400).json({ success: false, error: "messages array required" });
+    }
+    const conv = new Conversation({
+      conversationId: payload.conversationId,
+      userId: payload.userId,
+      agentId: payload.agentId,
+      callSuccessful: payload.callSuccessful,
+      callStart: payload.callStart ? new Date(payload.callStart) : undefined,
+      messages: payload.messages.map((m: any) => ({
+        role: m.role,
+        text: m.text,
+        timestamp: m.timestamp ? new Date(m.timestamp) : new Date(),
+      })),
+      summary: payload.summary,
+      raw: payload.raw,
     });
+    await conv.save();
+    res.status(201).json({ success: true, data: conv });
+  } catch (error) {
+    console.error("Error creating conversation:", error);
+    res.status(500).json({ success: false, error: "Failed to create conversation" });
+  }
+});
+
+// Update summary or messages
+router.put("/:conversationId", verifyToken, async (req: Request, res: Response) => {
+  try {
+    const { conversationId } = req.params;
+    const updates: any = {};
+    if (req.body.summary) updates.summary = req.body.summary;
+    if (req.body.messages && Array.isArray(req.body.messages)) {
+      updates.messages = req.body.messages.map((m: any) => ({
+        role: m.role,
+        text: m.text,
+        timestamp: m.timestamp ? new Date(m.timestamp) : new Date(),
+      }));
+    }
+    const updated = await Conversation.findOneAndUpdate({ conversationId }, updates, { new: true }).lean().exec();
+    if (!updated) return res.status(404).json({ success: false, error: "Conversation not found" });
+    res.json({ success: true, data: updated });
+  } catch (error) {
+    console.error("Error updating conversation:", error);
+    res.status(500).json({ success: false, error: "Failed to update conversation" });
   }
 });
 
