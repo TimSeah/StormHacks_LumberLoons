@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>LiveKit Laptop Demo</title>
+    <script src="https://cdn.jsdelivr.net/npm/livekit-client@2/dist/livekit-client.umd.min.js"></script>
+  </head>
+  <body>
+    <h1>LiveKit Laptop Demo</h1>
+    <button onclick="joinRoom()">Join Room</button>
+    <p id="status">Not connected yet.</p>
+
+    <script>
+      async function joinRoom() {
+        try {
+          //Fetch token from backend
+          const resp = await fetch("http://localhost:3000/livekit/token", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              identity: "chu123",
+              roomName: "session-1",
+            }),
+          });
+          const { token } = await resp.json();
+          console.log("Got token:", token);
+
+          const { Room, createLocalAudioTrack } = LivekitClient;
+
+          //Connect to LiveKit Cloud
+          const room = new Room();
+          await room.connect(
+            "wss://hackathons-sfu-2025-oct-4-n9u399o0.livekit.cloud",
+            token
+          );
+
+          //Publish microphone
+          const micTrack = await createLocalAudioTrack();
+          await room.localParticipant.publishTrack(micTrack);
+
+          //Listen for others
+          room.on("participantConnected", (p) => {
+            console.log("New participant:", p.identity);
+          });
+
+          document.getElementById("status").innerText = " Connected to room!";
+        } catch (err) {
+          console.error("Join failed:", err);
+          document.getElementById("status").innerText =
+            "Failed: " + (err.message || err);
+        }
+      }
+    </script>
+  </body>
+</html>
