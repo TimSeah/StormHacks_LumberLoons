@@ -1,9 +1,11 @@
-import { MessageCircleHeart, Mic, Panda, Video } from "lucide-react";
-import { motion } from "motion/react";
+import ExpandingButton from "@/components/ExpandingButton";
+import { MessageCircleHeart, Panda, Video } from "lucide-react";
 import React from "react";
-import PageWrapper from "../components/PageWrapper";
+import { useNavigate } from "react-router";
+import PageWrapper from "../PageWrapper";
 
 const Home: React.FC = () => {
+  const navigation = useNavigate();
   return (
     <PageWrapper className="items-center justify-center ">
       <div className="flex h-min flex-col p-10 bg-surface w-full rounded-4xl">
@@ -17,23 +19,26 @@ const Home: React.FC = () => {
         </p>
       </div>
       <div className="flex flex-row sm:flex-row gap-4 mt-4 w-full">
-        <motion.button
+        <ExpandingButton
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          className="flex items-center justify-center gap-3 bg-primary text-primary-foreground px-6 py-4 rounded-2xl font-medium transition-colors hover:bg-primary/90 w-full"
+          onPress={() => {
+            navigation("/carrie");
+          }}
+          className="flex flex-1 items-center justify-center gap-3 bg-accent text-accent-foreground px-6 py-4 rounded-2xl font-medium transition-colors hover:bg-accent/90 w-full"
         >
           <Video size={20} />
-          Video call
-        </motion.button>
+          Talk with Carrie
+        </ExpandingButton>
 
-        <motion.button
+        {/* <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           className="flex items-center justify-center gap-3 bg-secondary text-secondary-foreground px-6 py-4 rounded-2xl font-medium transition-colors hover:bg-secondary/90 w-full"
         >
           <Mic size={20} />
           Chat with me
-        </motion.button>
+        </motion.button> */}
       </div>
     </PageWrapper>
   );

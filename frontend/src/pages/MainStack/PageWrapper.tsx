@@ -43,7 +43,10 @@ const PageWrapper: React.FC<PageWrapperProps> = ({
             delay: 0.1,
             duration: 0.2,
           }}
-          className={`flex min-h-screen flex-col px-6 ${className}`}
+          className={`flex flex-col px-6 ${className} overflow-x-hidden overflow-y-auto min-h-screen pb-24 lg:pb-none lg:pt-12 mx-auto`}
+          style={{
+            maxWidth: 900,
+          }}
         >
           {children}
         </motion.div>
