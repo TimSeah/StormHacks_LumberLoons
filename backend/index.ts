@@ -2,8 +2,8 @@
 import 'dotenv/config';
 import express from "express";
 import cors from "cors";
-import authRoutes from "./auth/auth.routes";
-import { verifyToken } from "./auth/auth.jwt";
+import authRoutes from "./src/auth/auth.routes";
+import { verifyToken } from "./src/auth/auth.jwt";
 
 const app = express();
 const PORT = Number(process.env.PORT || 8080);
