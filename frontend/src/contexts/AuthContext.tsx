@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import React, { createContext, useContext, useEffect, useState } from "react";
+import { useNavigate } from "react-router";
 import AuthService from "../api/auth";
 import type { AuthUser, SigninRequest, SignupRequest } from "../types/auth";
 
@@ -32,6 +33,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   // Initialize auth state from localStorage
   useEffect(() => {
@@ -59,7 +61,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setIsLoading(true);
       setError(null);
       const response = await AuthService.signup(data);
-      setUser({ id: response.id, username: response.username });
+      setUser(response.user);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Signup failed";
       setError(errorMessage);
@@ -74,7 +76,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setIsLoading(true);
       setError(null);
       const response = await AuthService.signin(data);
-      setUser({ id: response.id, username: response.username });
+      setUser(response.user);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Signin failed";
       setError(errorMessage);
@@ -95,6 +97,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const isAuthenticated = !!user && AuthService.isAuthenticated();
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate("/login");
+    } else {
+      navigate("/home");
+    }
+  }, [isAuthenticated]);
 
   const value: AuthContextType = {
     user,

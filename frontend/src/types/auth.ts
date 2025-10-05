@@ -5,8 +5,7 @@ export interface AuthUser {
 }
 
 export interface AuthResponse {
-  id: number;
-  username: string;
+  user: AuthUser;
   accessToken: string;
 }
 

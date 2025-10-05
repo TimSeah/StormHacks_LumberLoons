@@ -18,8 +18,11 @@ router.post("/token", async (req, res) => {
   const apiKey = process.env.LIVEKIT_API_KEY!;
   const apiSecret = process.env.LIVEKIT_API_SECRET!;
 
-  const at = new AccessToken(apiKey, apiSecret, { identity });
-  at.addGrant({ roomJoin: true, room: roomName });
+  const at = new AccessToken(apiKey, apiSecret, { 
+    identity,
+    ttl: '24h' // Token valid for 24 hours to prevent mid-session expiration
+  });
+  at.addGrant({ roomJoin: true, room: roomName, canPublish: true, canSubscribe: true });
 
   //await the JWT
   const jwt = await at.toJwt();

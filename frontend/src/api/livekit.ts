@@ -20,7 +20,7 @@ export interface LiveKitService {
 
 class LiveKitApi {
   private room: Room | null = null;
-  private wsUrl = "wss://hackathons-sfu-2025-oct-4-n9u399o0.livekit.cloud";
+  private wsUrl = "wss://stormhacks-blar11m6.livekit.cloud";
 
   /**
    * Fetch a token from the backend for LiveKit room access
@@ -60,14 +60,27 @@ class LiveKitApi {
       // Fetch token from backend
       const token = await this.fetchToken(options.identity, options.roomName);
 
-      // Create new room instance
-      this.room = new Room();
+      // Create new room instance with connection options
+      this.room = new Room({
+        adaptiveStream: true, // Adjust quality based on connection
+        dynacast: true, // Optimize bandwidth usage
+        reconnectPolicy: {
+          nextRetryDelayInMs: (context) => {
+            // Exponential backoff: 1s, 2s, 4s, 8s, max 10s
+            // Stop after 5 attempts by returning -1
+            if (context.retryCount >= 5) return -1;
+            return Math.min(1000 * Math.pow(2, context.retryCount), 10000);
+          },
+        },
+      });
 
       // Set up event listeners
       this.setupRoomEventListeners();
 
-      // Connect to LiveKit Cloud
-      await this.room.connect(this.wsUrl, token);
+      // Connect to LiveKit Cloud with timeout
+      await this.room.connect(this.wsUrl, token, {
+        autoSubscribe: true,
+      });
 
       // Publish audio track if enabled (default: true)
       if (options.enableAudio !== false) {
@@ -140,6 +153,18 @@ class LiveKitApi {
 
     this.room.on(RoomEvent.Disconnected, (reason) => {
       console.log("Disconnected from room:", reason);
+      // Don't auto-reconnect on intentional disconnect or duplicate connections
+      if (reason !== undefined && reason !== 2) {
+        console.log("Will not auto-reconnect, reason:", reason);
+      }
+    });
+
+    this.room.on(RoomEvent.Reconnecting, () => {
+      console.log("Attempting to reconnect...");
+    });
+
+    this.room.on(RoomEvent.Reconnected, () => {
+      console.log("Successfully reconnected to room");
     });
 
     this.room.on(RoomEvent.ParticipantConnected, (participant) => {

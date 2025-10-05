@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import * as jwt from "jsonwebtoken";
 
-const JWT_SECRET = process.env.JWT_SECRET || "change-this-secret";
+const JWT_SECRET = process.env.JWT_SECRET || "remove-this-secret-in-production";
 
 export interface AuthRequest extends Request {
     user?: any;
@@ -25,3 +25,4 @@ export const verifyToken = (req: AuthRequest, res: Response, next: NextFunction)
         return res.status(401).json({ message: "Unauthorized" });
     }
 };
+

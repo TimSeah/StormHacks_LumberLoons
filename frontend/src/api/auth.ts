@@ -1,4 +1,9 @@
-import type { AuthResponse, SigninRequest, SignupRequest } from "../types/auth";
+import type {
+  AuthResponse,
+  AuthUser,
+  SigninRequest,
+  SignupRequest,
+} from "../types/auth";
 
 const API_BASE_URL = "http://localhost:3000"; // Adjust based on your backend URL
 
@@ -16,7 +21,7 @@ class AuthService {
     }
   }
 
-  static getUser(): { id: number; username: string } | null {
+  static getUser(): AuthUser | null {
     try {
       const userStr = localStorage.getItem(this.USER_KEY);
       return userStr ? JSON.parse(userStr) : null;
@@ -29,13 +34,7 @@ class AuthService {
   static setAuthData(response: AuthResponse): void {
     try {
       localStorage.setItem(this.TOKEN_KEY, response.accessToken);
-      localStorage.setItem(
-        this.USER_KEY,
-        JSON.stringify({
-          id: response.id,
-          username: response.username,
-        })
-      );
+      localStorage.setItem(this.USER_KEY, JSON.stringify(response.user));
     } catch (error) {
       console.error("Error saving auth data to localStorage:", error);
     }

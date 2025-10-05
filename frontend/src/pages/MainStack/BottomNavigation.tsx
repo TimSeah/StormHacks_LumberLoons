@@ -10,7 +10,7 @@ const BottomNavigation: React.FC = () => {
 
   const navItems = [
     {
-      path: "/",
+      path: "/home",
       icon: HouseSimpleIcon,
       label: "Home",
     },
@@ -28,10 +28,16 @@ const BottomNavigation: React.FC = () => {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 mx-auto right-0 py-4 px-8 flex-row flex z-50  bg-gradient-to-t from-white from-80% to-transparent"
-      style={{ maxWidth: "500px" }}
+      className="fixed bottom-0 left-0 right-0 py-4 px-8 flex-row flex z-50 bg-gradient-to-t from-white from-80% to-transparent
+                 lg:top-0 lg:bottom-auto lg:bg-gradient-to-b lg:from-white lg:from-80% lg:to-transparent lg:items-center justify-center mx-auto max-w-[500px] lg:max-w-none"
     >
-      <div className="flex flex-1 items-center px-2 py-2 rounded-full  bg-surface relative">
+      <Link to="/home" className=" items-center lg:flex hidden">
+        <Panda size={36} className="rotate-[10deg]  mr-3" />
+        <h2 className=" text-3xl font-semibold mr-8">Carrie</h2>
+      </Link>
+
+      {/* Navigation items */}
+      <div className="flex flex-1 items-center px-2 py-2 rounded-full bg-surface relative lg:flex-initial">
         {navItems.map((item) => {
           const isActive = location.pathname === item.path;
           const Icon = item.icon;
@@ -40,9 +46,12 @@ const BottomNavigation: React.FC = () => {
             <Link
               key={item.path}
               to={item.path}
-              className={`flex flex-col items-center flex-1 rounded-full px-2 py-2 relative z-10 ${
-                isActive ? "text-foreground" : "text-muted-foreground "
-              }`}
+              className={`flex flex-col items-center flex-1 rounded-full px-2 py-2 relative z-10
+                          lg:flex-row lg:px-4 lg:py-2 lg:mr-2 lg:flex-initial ${
+                            isActive
+                              ? "text-foreground"
+                              : "text-muted-foreground "
+                          }`}
             >
               {isActive && (
                 <motion.div
@@ -54,14 +63,17 @@ const BottomNavigation: React.FC = () => {
               )}
               <Icon
                 size={24}
-                className="mb-1"
+                className="mb-1 lg:mb-0 lg:mr-2 lg:w-5 lg:h-5"
                 weight={isActive ? "fill" : "regular"}
               />
-              <span className="text-sm font-medium">{item.label}</span>
+              <span className="text-sm font-medium lg:text-base">
+                {item.label}
+              </span>
             </Link>
           );
         })}
       </div>
+      {/* Carrie section - shown on left for large screens */}
       <motion.div
         className="ml-4"
         whileHover={{ scale: 1.05, rotate: -10 }}
@@ -70,9 +82,9 @@ const BottomNavigation: React.FC = () => {
       >
         <Link
           to="/carrie"
-          className="flex aspect-square justify-center flex-col items-center py-2 px-4 h-full rounded-full transition-colors border-primary border-2"
+          className="flex lg:hidden aspect-square justify-center flex-col items-center py-2 px-4 h-full rounded-full transition-colors border-accent border-2"
           style={{
-            boxShadow: "inset 0 0 10px var(--color-primary)",
+            boxShadow: "inset 0 0 10px var(--color-accent)",
           }}
         >
           <Panda size={48} className="rotate-[10deg]" />

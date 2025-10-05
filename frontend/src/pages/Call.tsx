@@ -31,6 +31,7 @@ const Call: React.FC = () => {
   const { user } = useAuth();
   const constraintsRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+  const isConnectingRef = useRef(false); // Prevent duplicate connections
 
   useEffect(() => {
     const connectToLiveKit = async () => {
@@ -40,13 +41,23 @@ const Call: React.FC = () => {
         return;
       }
 
+      // Prevent duplicate connection attempts
+      if (isConnectingRef.current) {
+        console.log("Already connecting, skipping...");
+        return;
+      }
+
       try {
+        isConnectingRef.current = true;
         setIsLoading(true);
         setConnectionError(null);
 
+        // Generate unique identity to prevent duplicate connections
+        const uniqueIdentity = `${user.username || `user-${user.id}`}-${Date.now()}`;
+
         // Connect to LiveKit room
         const connectedRoom = await liveKitApi.connectToRoom({
-          identity: user.username || `user-${user.id}`,
+          identity: uniqueIdentity,
           roomName: "session-1", // You can make this dynamic based on your needs
           enableAudio: true,
           enableVideo: true,
@@ -61,6 +72,7 @@ const Call: React.FC = () => {
         );
       } finally {
         setIsLoading(false);
+        isConnectingRef.current = false;
       }
     };
 
@@ -68,11 +80,12 @@ const Call: React.FC = () => {
 
     // Cleanup on unmount
     return () => {
-      if (room) {
-        liveKitApi.disconnectFromRoom();
-      }
+      console.log("Cleaning up LiveKit connection...");
+      liveKitApi.disconnectFromRoom();
+      isConnectingRef.current = false;
     };
-  }, [user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only connect once on mount, user is checked inside
 
   // Effect to setup microphone audio detection
   useEffect(() => {
@@ -102,7 +115,7 @@ const Call: React.FC = () => {
             const average =
               dataArray.reduce((sum, value) => sum + value, 0) /
               dataArray.length;
-            const threshold = 30; // Adjust this threshold as needed
+            const threshold = 80; // Adjust this threshold as needed
 
             setIsListening(average > threshold);
           }
@@ -160,6 +173,82 @@ const Call: React.FC = () => {
     }
   }, [room]);
 
+  // Effect to capture and send video frames to emotion detector
+  useEffect(() => {
+    let intervalId: number | undefined;
+
+    const captureAndSendFrame = async () => {
+      if (!videoRef.current || !isVideoEnabled) return;
+
+      try {
+        // Create a canvas to capture the current video frame
+        const canvas = document.createElement("canvas");
+        const video = videoRef.current;
+
+        if (video.videoWidth === 0 || video.videoHeight === 0) {
+          return; // Video not ready yet
+        }
+
+        // Resize to max 640px width for faster processing and smaller payload
+        const maxWidth = 640;
+        const scale = Math.min(1, maxWidth / video.videoWidth);
+        canvas.width = video.videoWidth * scale;
+        canvas.height = video.videoHeight * scale;
+
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+
+        // Draw current video frame to canvas (scaled down)
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        // Convert canvas to base64 with lower quality for smaller payload
+        const frameData = canvas.toDataURL("image/jpeg", 0.6);
+
+        // Send frame to backend
+        const response = await fetch(
+          `${import.meta.env.VITE_API_URL || "http://localhost:3000"}/api/emotion/process-frame`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ frame: frameData }),
+          }
+        );
+
+        if (response.ok) {
+          const result = await response.json();
+          console.log("Emotion detected:", result.emotion);
+        }
+      } catch (error) {
+        console.error("Error sending video frame:", error);
+      }
+    };
+
+    // Start capturing frames every 2 seconds when video is enabled
+    if (room && liveKitApi.isConnected() && isVideoEnabled) {
+      // Initial capture
+      captureAndSendFrame();
+
+      // Set up interval for continuous capture
+      intervalId = window.setInterval(() => {
+        // Check connection status before each capture
+        if (liveKitApi.isConnected() && isVideoEnabled) {
+          captureAndSendFrame();
+        } else {
+          console.log('Skipping frame capture - not connected or video disabled');
+        }
+      }, 2000);
+    }
+
+    // Cleanup
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
+  }, [room, isVideoEnabled]);
+
   // Control button handlers
   const toggleAudio = async () => {
     try {
@@ -183,7 +272,7 @@ const Call: React.FC = () => {
     if (room) {
       liveKitApi.disconnectFromRoom();
     }
-    navigate("/");
+    navigate("/home");
   };
 
   return (
