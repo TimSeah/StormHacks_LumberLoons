@@ -31,6 +31,7 @@ const Call: React.FC = () => {
   const { user } = useAuth();
   const constraintsRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+  const isConnectingRef = useRef(false); // Prevent duplicate connections
 
   useEffect(() => {
     const connectToLiveKit = async () => {
@@ -40,13 +41,23 @@ const Call: React.FC = () => {
         return;
       }
 
+      // Prevent duplicate connection attempts
+      if (isConnectingRef.current) {
+        console.log("Already connecting, skipping...");
+        return;
+      }
+
       try {
+        isConnectingRef.current = true;
         setIsLoading(true);
         setConnectionError(null);
 
+        // Generate unique identity to prevent duplicate connections
+        const uniqueIdentity = `${user.username || `user-${user.id}`}-${Date.now()}`;
+
         // Connect to LiveKit room
         const connectedRoom = await liveKitApi.connectToRoom({
-          identity: user.username || `user-${user.id}`,
+          identity: uniqueIdentity,
           roomName: "session-1", // You can make this dynamic based on your needs
           enableAudio: true,
           enableVideo: true,
@@ -61,6 +72,7 @@ const Call: React.FC = () => {
         );
       } finally {
         setIsLoading(false);
+        isConnectingRef.current = false;
       }
     };
 
@@ -68,11 +80,12 @@ const Call: React.FC = () => {
 
     // Cleanup on unmount
     return () => {
-      if (room) {
-        liveKitApi.disconnectFromRoom();
-      }
+      console.log("Cleaning up LiveKit connection...");
+      liveKitApi.disconnectFromRoom();
+      isConnectingRef.current = false;
     };
-  }, [user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only connect once on mount, user is checked inside
 
   // Effect to setup microphone audio detection
   useEffect(() => {
@@ -176,17 +189,20 @@ const Call: React.FC = () => {
           return; // Video not ready yet
         }
 
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
+        // Resize to max 640px width for faster processing and smaller payload
+        const maxWidth = 640;
+        const scale = Math.min(1, maxWidth / video.videoWidth);
+        canvas.width = video.videoWidth * scale;
+        canvas.height = video.videoHeight * scale;
 
         const ctx = canvas.getContext("2d");
         if (!ctx) return;
 
-        // Draw current video frame to canvas
+        // Draw current video frame to canvas (scaled down)
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-        // Convert canvas to base64
-        const frameData = canvas.toDataURL("image/jpeg", 0.8);
+        // Convert canvas to base64 with lower quality for smaller payload
+        const frameData = canvas.toDataURL("image/jpeg", 0.6);
 
         // Send frame to backend
         const response = await fetch(
@@ -215,7 +231,14 @@ const Call: React.FC = () => {
       captureAndSendFrame();
 
       // Set up interval for continuous capture
-      intervalId = window.setInterval(captureAndSendFrame, 2000);
+      intervalId = window.setInterval(() => {
+        // Check connection status before each capture
+        if (liveKitApi.isConnected() && isVideoEnabled) {
+          captureAndSendFrame();
+        } else {
+          console.log('Skipping frame capture - not connected or video disabled');
+        }
+      }, 2000);
     }
 
     // Cleanup
