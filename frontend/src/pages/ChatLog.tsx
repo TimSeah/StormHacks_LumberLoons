@@ -2,16 +2,13 @@ import { ArrowLeft, MessageCircle } from "lucide-react";
 import React from "react";
 import { useNavigate, useParams } from "react-router";
 import ActivityIndicator from "../components/ActivityIndicator";
-import { useHistoryQuery } from "../hooks/history";
+import { useConversationQuery } from "../hooks/history";
 import PageWrapper from "./MainStack/PageWrapper";
 
 const ChatLog: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { data: chatHistory, isLoading } = useHistoryQuery();
-
-  // Find the specific chat log by ID
-  const chatLog = chatHistory?.find((log) => log.id === id);
+  const { data: chatLog, isLoading } = useConversationQuery(id || "", false);
 
   if (isLoading) {
     return (
@@ -61,9 +58,11 @@ const ChatLog: React.FC = () => {
             <ArrowLeft size={24} />
           </button>
           <div>
-            <h1 className="text-4xl font-bold">{chatLog.title}</h1>
+            <h1 className="text-4xl font-bold">
+              {chatLog.raw?.metadata.topic}
+            </h1>
             <p className="text-sm text-muted-foreground mt-1">
-              {chatLog.timestamp.toLocaleString()}
+              {chatLog.createdAt.toLocaleString()}
             </p>
           </div>
         </div>
@@ -77,8 +76,8 @@ const ChatLog: React.FC = () => {
           {/* Placeholder for actual chat messages - you can extend this based on your chat data structure */}
           <div className="space-y-4">
             <div className="text-muted-foreground">
-              <p>Chat ID: {chatLog.id}</p>
-              <p>Started: {chatLog.timestamp.toLocaleString()}</p>
+              <p>Chat ID: {chatLog._id}</p>
+              <p>Started: {chatLog.createdAt.toLocaleString()}</p>
             </div>
 
             {/* Add your actual chat messages here when you have the data structure */}

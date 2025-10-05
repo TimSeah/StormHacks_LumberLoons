@@ -25,15 +25,17 @@ const History: React.FC = () => {
           <div className="gap-4 flex flex-col lg:grid lg:grid-cols-2 lg:gap-6">
             {chatHistory?.map((chatLog) => (
               <div
-                key={chatLog.id}
-                onClick={() => handleChatLogClick(chatLog.id)}
+                key={chatLog._id}
+                onClick={() => handleChatLogClick(chatLog._id)}
                 className="bg-surface rounded-3xl px-6 py-10 flex flex-row gap-4 items-center cursor-pointer hover:bg-surface/80 transition-colors"
               >
                 <ChatsTeardropIcon size={24} />
                 <div>
-                  <p className="text-lg font-medium">{chatLog.title}</p>
+                  <p className="text-lg font-medium">
+                    {chatLog.raw?.metadata.topic}
+                  </p>
                   <p className="text-sm text-muted-foreground">
-                    {chatLog.timestamp.toLocaleString()}
+                    {new Date(chatLog.createdAt).toLocaleString()}
                   </p>
                 </div>
               </div>
