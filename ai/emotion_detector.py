@@ -1,6 +1,7 @@
 """
-Webcam + Emotion Detection API
+LiveKit Video Stream + Emotion Detection API
 Real-time facial emotion detection using ViT model
+Receives video frames from LiveKit via WebSocket
 Provides REST and WebSocket endpoints
 """
 
@@ -9,10 +10,11 @@ import torch
 import numpy as np
 from transformers import ViTImageProcessor, ViTForImageClassification
 from PIL import Image
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from flask_socketio import SocketIO, emit
 from flask_cors import CORS
-import threading
+import base64
+import io
 import time
 
 app = Flask(__name__)
@@ -86,32 +88,34 @@ class EmotionDetector:
 
         return current_emotion_data
 
-
-def run_webcam_loop(detector):
-    """Continuous webcam emotion detection loop"""
-    cap = cv2.VideoCapture(0)
-    cap.set(cv2.CAP_PROP_FPS, 30)
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
-
-    if not cap.isOpened():
-        return
-
-    while True:
-        ret, frame = cap.read()
-        if not ret:
-            time.sleep(1)
-            continue
-
+    def process_frame_from_base64(self, base64_image):
+        """Process a base64 encoded image frame from LiveKit"""
         try:
-            emotion_data = detector.detect_emotion(frame)
-            socketio.emit("emotion_update", emotion_data)
+            # Decode base64 image (remove data:image prefix if present)
+            if ',' in base64_image:
+                base64_image = base64_image.split(',')[1]
+            
+            image_data = base64.b64decode(base64_image)
+            image = Image.open(io.BytesIO(image_data))
+            
+            # Convert PIL image to numpy array for OpenCV
+            frame = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
+            
+            # Detect emotion from the frame
+            return self.detect_emotion(frame)
         except Exception as e:
-            pass
+            print(f"Error processing frame: {e}")
+            return {
+                "emotion": "Error",
+                "confidence": 0.0,
+                "timestamp": time.time(),
+                "face_detected": False,
+                "error": str(e)
+            }
 
-        time.sleep(0.5)
 
-    cap.release()
+# Initialize detector globally
+detector = EmotionDetector()
 
 
 # REST API Endpoints
@@ -183,17 +187,80 @@ def health_check():
 # WebSocket Handlers
 @socketio.on("connect")
 def handle_connect():
+    """Handle client connection"""
+    print(f"Client connected: {request.sid}")
     emit("emotion_update", current_emotion_data)
 
 
 @socketio.on("disconnect")
 def handle_disconnect():
-    pass
+    """Handle client disconnection"""
+    print(f"Client disconnected: {request.sid}")
+
+
+@socketio.on("video_frame")
+def handle_video_frame(data):
+    """
+    Receive video frame from LiveKit frontend and process emotion
+    Expected data format: {"frame": "base64_encoded_image", "timestamp": 1234567890}
+    """
+    try:
+        frame_data = data.get("frame")
+        if not frame_data:
+            emit("emotion_error", {"error": "No frame data provided"})
+            return
+        
+        # Process the frame
+        emotion_data = detector.process_frame_from_base64(frame_data)
+        
+        # Emit emotion update to all connected clients
+        socketio.emit("emotion_update", emotion_data, broadcast=True)
+        
+        # Also emit back to sender with acknowledgment
+        emit("emotion_processed", {
+            "status": "success",
+            "emotion": emotion_data.get("emotion"),
+            "confidence": emotion_data.get("confidence")
+        })
+        
+    except Exception as e:
+        print(f"Error handling video frame: {e}")
+        emit("emotion_error", {"error": str(e)})
+
+
+@app.route("/api/process_frame", methods=["POST"])
+def process_frame_rest():
+    """
+    REST endpoint to process a single frame
+    Accepts base64 encoded image in JSON body
+    """
+    try:
+        data = request.get_json()
+        frame_data = data.get("frame")
+        
+        if not frame_data:
+            return jsonify({"error": "No frame data provided"}), 400
+        
+        emotion_data = detector.process_frame_from_base64(frame_data)
+        return jsonify(emotion_data)
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 if __name__ == "__main__":
-    detector = EmotionDetector()
-    detection_thread = threading.Thread(target=run_webcam_loop, args=(detector,))
-    detection_thread.daemon = True
-    detection_thread.start()
-    socketio.run(app, host="0.0.0.0", port=5000, debug=False)
+    print("="*60)
+    print("Starting Emotion Detection API with LiveKit integration...")
+    print("="*60)
+    print("📡 WebSocket: ws://localhost:5000")
+    print("   - Event 'video_frame': Send base64 encoded frames")
+    print("   - Event 'emotion_update': Receive emotion data")
+    print("🌐 REST API: http://localhost:5000")
+    print("   - POST /api/process_frame: Process single frame")
+    print("   - GET  /api/emotion: Get current emotion")
+    print("   - GET  /api/webhook/emotion: ElevenLabs webhook")
+    print("="*60)
+    
+    socketio.run(
+        app, host="0.0.0.0", port=5000, debug=False, allow_unsafe_werkzeug=True
+    )
