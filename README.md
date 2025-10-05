@@ -10,6 +10,7 @@ AI-powered therapeutic agent using real-time facial emotion detection, mental he
 - **Mental Health LLM**: Context-aware therapeutic responses using `thrishala/mental_health_chatbot`
 - **Optional Text-to-Speech**: ElevenLabs voice output
 - **Modular Architecture**: 3 independent components + main integration
+- **🆕 ElevenLabs Webhook**: Emotion detection API endpoint for conversational AI agent integration
 
 ## Quick Setup
 
@@ -143,6 +144,18 @@ Response: {
   "timestamp": 1728086400.123,
   "face_detected": true
 }
+
+GET http://localhost:5000/api/webhook/emotion
+Response: {
+  "emotion": "Happy",
+  "confidence": 0.92,
+  "face_detected": true,
+  "context": "The user appears happy (confidence: 92%). They seem in a positive mood.",
+  "emotional_state": "happy",
+  "timestamp": 1728086400.123
+}
+# 🆕 Webhook endpoint for ElevenLabs agent integration
+# See WEBHOOK_QUICK_SETUP.md for configuration guide
 
 GET http://localhost:5000/api/health
 Response: {

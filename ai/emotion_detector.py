@@ -121,6 +121,53 @@ def get_emotion():
     return jsonify(current_emotion_data)
 
 
+@app.route("/api/webhook/emotion", methods=["GET", "POST"])
+def webhook_emotion():
+    """
+    Webhook endpoint for ElevenLabs agent
+    Returns current emotion in a format suitable for LLM context injection
+    """
+    emotion = current_emotion_data.get("emotion", "Neutral")
+    confidence = current_emotion_data.get("confidence", 0.0)
+    face_detected = current_emotion_data.get("face_detected", False)
+
+    if not face_detected or emotion == "No face detected":
+        return jsonify(
+            {
+                "emotion": "Neutral",
+                "confidence": 0.0,
+                "face_detected": False,
+                "context": "No face detected. Proceed with neutral conversation.",
+                "emotional_state": "unknown",
+            }
+        )
+
+    # Map emotions to conversational context
+    emotion_contexts = {
+        "Happy": f"The user appears happy (confidence: {confidence:.0%}). They seem in a positive mood.",
+        "Sad": f"The user appears sad (confidence: {confidence:.0%}). They may need empathy and support.",
+        "Angry": f"The user appears angry (confidence: {confidence:.0%}). Approach with care and validation.",
+        "Fear": f"The user appears fearful or anxious (confidence: {confidence:.0%}). Provide reassurance.",
+        "Surprise": f"The user appears surprised (confidence: {confidence:.0%}). They may be processing new information.",
+        "Disgust": f"The user appears uncomfortable or disgusted (confidence: {confidence:.0%}). Be gentle and understanding.",
+        "Neutral": f"The user appears calm and neutral (confidence: {confidence:.0%}).",
+    }
+
+    context = emotion_contexts.get(emotion, f"The user's emotion is {emotion}.")
+
+    # Return webhook response
+    return jsonify(
+        {
+            "emotion": emotion,
+            "confidence": float(confidence),
+            "face_detected": True,
+            "context": context,
+            "emotional_state": emotion.lower(),
+            "timestamp": current_emotion_data.get("timestamp", time.time()),
+        }
+    )
+
+
 @app.route("/api/health", methods=["GET"])
 def health_check():
     """Health check endpoint"""
