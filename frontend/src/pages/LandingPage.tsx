@@ -166,7 +166,7 @@ const LandingPage: React.FC = () => {
       <footer className="py-8 border-t bg-surface">
         <div className="container mx-auto px-4">
           <div className="text-center text-muted-foreground">
-            <p>&copy; 2024 Carrie. All rights reserved.</p>
+            <p>&copy; 2026 Carrie. All rights reserved.</p>
           </div>
         </div>
       </footer>
