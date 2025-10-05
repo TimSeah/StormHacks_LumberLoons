@@ -19,13 +19,15 @@ const LandingPage: React.FC = () => {
           <div className="text-center max-w-2xl mx-auto">
             <BlurFade inView>
               <h1 className="text-5xl font-bold mb-8 text-foreground">
-                Carrie is around whe you need someone to talk to.
+                A Judgement Free Place to Discuss Everyday Problems
               </h1>
             </BlurFade>
 
             <BlurFade inView delay={0.1}>
               <p className="text-xl text-muted-foreground mb-12">
-                Talk with carrie whenever you need that emotional support.
+                Carrie is here round-the-clock to support and guide with a 24/7
+                AI therapist, always at your fingertips to help you navigate
+                life’s challenges.
               </p>
             </BlurFade>
 
